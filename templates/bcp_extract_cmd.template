@@ -1,13 +1,12 @@
 @echo off
-set sqlserver_host={vDBHost}
-set sqlserver_db={vDBName}
+set sqlserver_host={vDBHost}\{vDBName}
 set work_dir={vWorkDir}
 
 
 rem ------------------------------ [sql stmt] -------------------------------
 
 set sql_stmt=select {vTabFields}                             ^
-             from   [{vTab}]
+             from   {vSchema}.[{vTab}]
 
 rem -------------------------------------------------------------------------
 rem

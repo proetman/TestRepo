@@ -130,6 +130,62 @@ def template_load_extract(p_dir):
 
     return data
 
+# --------------------------------------------------------------------
+#
+#                          bcp create extract
+#
+# --------------------------------------------------------------------
+
+
+def bcp_create_extract(p_extract_template_s, p_tab, p_cols_df, p_con):
+    """ convert extract to program """
+    alib.log_debug('start bcm create extract')
+
+    l_cols_l = p_cols_df['COLUMN'].tolist()
+    l_cols_s = ','.join(l_cols_l).lower()
+
+    if '.' in p_con['schema']:
+        l_schema = '.'.join('[' + x + ']' for x in p_con['schema'].split('.'))
+    else:
+        l_schema = '[' + p_con['schema'] + ']'
+
+    p_prog = p_extract_template_s.format(vDBHost=p_con['host'],
+                                         vDBName=p_con['db'],
+                                         vSchema=l_schema,
+                                         vTabFields=l_cols_s,
+                                         vTab=p_tab.lower(),
+                                         vWorkDir='c:\\tmp')
+
+    return p_prog
+
+# --------------------------------------------------------------------
+#
+#                          bcp create extract
+#
+# --------------------------------------------------------------------
+
+
+def bcp_extract_write(p_extract_dir, p_tab, p_bcp_extract):
+    """ dump program to disk """
+    alib.log_debug('start bcp extract write')
+
+    l_filename = 'bcp_extract_{}.cmd'.format(p_tab.lower())
+    l_path = '{}/{}'.format(p_extract_dir, l_filename)
+
+    alib.log_debug('    file: [{}]'.format(l_path))
+
+    retval = True
+    try:
+        with open(l_path, "w") as text_file:
+            print(p_bcp_extract, file=text_file)
+
+    except IOError as err:
+        alib.p_e('Function bcp_extract_write raised IO Error.')
+        alib.p_e('       BCP File: [{}]'.format(l_path))
+        alib.p_e('\n       error text [{}]'.format(err))
+        retval = False
+
+    return retval
 
 # --- Program Init
 # --------------------------------------------------------------------
@@ -177,6 +233,23 @@ def initialise(p_filename):
                         default=def_txt,
                         required=False)
 
+    def_txt = 'ACCDEVDB101'
+    parser.add_argument('--source_host',
+                        help='Enter source hostname',
+                        default=def_txt,
+                        required=False)
+
+    def_txt = 'DEV'
+    parser.add_argument('--source_db',
+                        help='Enter source db',
+                        default=def_txt,
+                        required=False)
+
+    def_txt = 'cad_33.dbo'
+    parser.add_argument('--source_schema',
+                        help='Enter source schema',
+                        default=def_txt,
+                        required=False)
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -210,6 +283,10 @@ def main():
 
     extract_template_s = template_load_extract(args['templates'])
 
+    l_extract_dir = args['bcp_target_dir']
+    if not alib.dir_create(l_extract_dir):
+        alib.p_e('Unable to create or open directory for bcp extract files: [{}]'.format(l_extract_dir))
+        return alib.FAIL_GENERIC
 
     csv_df = open_csv(args['csv'])
     if csv_df is None:
@@ -217,10 +294,20 @@ def main():
         return alib.FAIL_GENERIC
 
     tab_a = create_unique_tab_list(csv_df)
+    tab_a.sort()
+
+    con = {}
+    con['host'] = args['source_host']
+    con['db'] = args['source_db']
+    con['schema'] = args['source_schema']
 
     for tab in tab_a:
+        alib.p_i('Generate bcp program for {}'.format(tab))
         cols_df = fetch_columns(csv_df, tab)
-        bcp_extract = bcp_create_extract(extract_template_s, tab, cols_df)
+        bcp_extract = bcp_create_extract(extract_template_s, tab, cols_df, con)
+        if not bcp_extract_write(l_extract_dir, tab, bcp_extract):
+            alib.p_e('Unable to create output file, aborting')
+            return alib.FAIL_GENERIC
 
     alib.p_i('Done...')
 

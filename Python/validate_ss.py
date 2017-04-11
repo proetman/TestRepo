@@ -34,7 +34,7 @@ import acc_lib as alib
 
 # --------------------------------------------------------------------
 #
-#                          cleanup
+#                          get filenames
 #
 # --------------------------------------------------------------------
 
@@ -42,13 +42,38 @@ import acc_lib as alib
 def get_filenames(p_dir):
     """ get all files """
 
-    list_of_files = {}
+#    list_of_files = {}
+    dict_of_files = []
     for (dirpath, dummy_dirnames, filenames) in os.walk(p_dir):
         for filename in filenames:
-            if filename.endswith('.xlsx'):
-                list_of_files[filename] = os.sep.join([dirpath, filename]).replace('\\', '/')
+            dict_of_files.append(os.sep.join([dirpath, filename]).replace('\\', '/'))
+#            if 'Crib' not in filename:
+#                continue
+#            print(filename)
+#            list_of_files[filename] = os.sep.join([dirpath, filename]).replace('\\', '/')
 
-    return list_of_files
+    return dict_of_files
+
+# --------------------------------------------------------------------
+#
+#                          cleanup
+#
+# --------------------------------------------------------------------
+
+
+def cleanup_filenames(p_dict, p_type):
+    """ get all files """
+
+    if p_type == 'club':
+        remove_str = 'Data Templates by Club/'
+    elif p_type == 'master':
+        remove_str = 'CD4'
+    else:
+        remove_str = 'CD4'
+
+    for key, value in p_dict.items():
+        p_dict[key] = value.split(remove_str)[1]
+
 
 
 # --------------------------------------------------------------------
@@ -150,7 +175,8 @@ def cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres):
     """ compare the rowcount for each common tab. """
 
     alib.log_debug('cd rowcount')
-    perc_txt = '            Percentages: file: "{vF:30s}", tabs modified {vM:3.2f}%, unchanged {vU:3.2f}%, count [{vC}], '
+    perc_txt = '            Percentages: file: "{vF:30s}", tabs modified {vM:3.2f}%,'
+    perc_txt += ' unchanged {vU:3.2f}%, count [{vC}], '
     l_ss_keys = p_ss_dict.keys()
     l_m_keys = sorted(p_m_dict.keys())
 
@@ -180,9 +206,9 @@ def cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres):
         mod = 100 * (modified_tab/tot)
         unmod = 100 * (unmod_tab/tot)
 
+    alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=count, vF=p_file))
 
-
-    alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=count, vF=p_file ))
+    return
 
 # --------------------------------------------------------------------
 #
@@ -307,7 +333,7 @@ def mcf_validate_tabs(p_list, p_clubs):
             l_str = [f.replace(c, 'CLUBNAME') for f in l_str]
         return l_str
 
-    err_txt =  '    FILE 1 "{vM}" is different to FILE 2 "{vC}"'
+    err_txt = '    FILE 1 "{vM}" is different to FILE 2 "{vC}"'
     err_txt2 = '        file1 tabs: [{vT}]'
     err_txt3 = '        file2 tabs: [{vT}]'
 
@@ -464,8 +490,6 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
 
     alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=tot, vMC=totmod))
 
-
-
 # --------------------------------------------------------------------
 #
 #                          validate master
@@ -575,6 +599,10 @@ def main():
     club_files = get_filenames(args['clubdir'])
     m_files = get_filenames(args['m_dir'])
     mc_files = get_filenames(args['mc_dir'])
+
+    cleanup_filenames(club_files,'club')
+    cleanup_filenames(m_files,'master')
+    cleanup_filenames(mc_files,'master club')
 
     validate_master_files(m_files, club_files, 'Master')
     validate_master_files(mc_files, club_files, 'Master Common')

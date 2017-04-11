@@ -146,7 +146,7 @@ def cd_rowcount_compare(p_tab, p_ss_df, p_m_df):
 # --------------------------------------------------------------------
 
 
-def cd_rowcount(p_file, p_ss_dict, p_m_dict):
+def cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres):
     """ compare the rowcount for each common tab. """
 
     alib.log_debug('cd rowcount')
@@ -170,12 +170,17 @@ def cd_rowcount(p_file, p_ss_dict, p_m_dict):
             else:
                 unmod_tab += 1
 
+    p_totres['unchanged'] += unmod_tab
+    p_totres['modified'] += modified_tab
+
     tot = modified_tab + unmod_tab
     mod = 0
     unmod = 0
     if tot > 0:
         mod = 100 * (modified_tab/tot)
         unmod = 100 * (unmod_tab/tot)
+
+
 
     alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=count, vF=p_file ))
 
@@ -208,7 +213,7 @@ def cd_tabs(p_ss_dict, p_m_dict):
 # --------------------------------------------------------------------
 
 
-def compare_dict(p_file, p_ss_dict, p_m_dict):
+def compare_dict(p_file, p_ss_dict, p_m_dict, p_totres):
     """ compare master spreadsheet to club """
 
     alib.log_debug('compare dict')
@@ -219,7 +224,7 @@ def compare_dict(p_file, p_ss_dict, p_m_dict):
         cd_tabs(p_ss_dict, p_m_dict)
 
     cd_cols(p_ss_dict, p_m_dict)
-    cd_rowcount(p_file, p_ss_dict, p_m_dict)
+    cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres)
 
 #    for tab in p_ss_dict:
 #        if tab in p_m_dict:
@@ -405,14 +410,18 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
     alib.p_i('Validate CLUB files')
     alib.p_i('-------------------------')
 
+    totres = {}
+    totres['unchanged'] = 0
+    totres['modified'] = 0
+
     # -- Loop through the club files
     for row in p_club_files.values():
         # print(row)
         curr_file = row.split('/')[-1]
         alib.p_i('Validate club file: {}'.format(curr_file), p_before=1)
 
-        if curr_file == 'ESP Alerts - RAA.xlsx':
-            x = 1
+#        if curr_file == 'ESP Alerts - RAA.xlsx':
+#            x = 1
 
         if curr_file in p_m_files:
             m_file = p_m_files[curr_file]
@@ -438,7 +447,24 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
         cleanup_ss(m_df)
 
         if ss_df is not None and m_df is not None:
-            compare_dict(curr_file, ss_df, m_df)
+            compare_dict(curr_file, ss_df, m_df, totres)
+
+    perc_txt = '            Overall Percentages: tabs modified {vM:3.2f}% ({vMC}), unchanged {vU:3.2f}%,'
+    perc_txt += ' total tab count [{vC}] '
+
+    totunmod = totres['unchanged']
+    totmod = totres['modified']
+
+    tot = totmod + totunmod
+    mod = 0
+    unmod = 0
+    if tot > 0:
+        mod = 100 * (totmod/tot)
+        unmod = 100 * (totunmod/tot)
+
+    alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=tot, vMC=totmod))
+
+
 
 # --------------------------------------------------------------------
 #
@@ -493,10 +519,13 @@ def initialise(p_filename):
           """, formatter_class=argparse.RawTextHelpFormatter)
 
     # --- DB parameters ---
+    def_dir = 'C:/work/stuff/'
+    m_def_dir = 'master_OneDrive_2017-04-07/Master Validated Templates by Club (Controlled)'
+    mc_def_dir = 'master_common_OneDrive_2017-04-07/Master Validated Common Data Templates (Controlled)'
 
-    parser.add_argument('--ss',
-                        help='spreadsheet',
-                        required=False)
+#    parser.add_argument('--ss',
+#                        help='spreadsheet',
+#                        required=False)
 
     parser.add_argument('--clubdir',
                         help='club files directory',
@@ -504,10 +533,12 @@ def initialise(p_filename):
 
     parser.add_argument('--m_dir',
                         help='master directory',
+                        default='{}{}'.format(def_dir, m_def_dir),
                         required=False)
 
     parser.add_argument('--mc_dir',
                         help='master common directory',
+                        default='{}{}'.format(def_dir, mc_def_dir),
                         required=False)
 
     # Add debug arguments

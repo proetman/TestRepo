@@ -1332,6 +1332,17 @@ def write_chunk_from_to(p_source_txt, p_target_txt, p_text_from, p_text_to,
 # --- Logging
 # --------------------------------------------------------------------
 #
+#                          display filename
+#
+# --------------------------------------------------------------------
+
+
+def format_filename(p_file):
+    """ format filename with backslash, not forward slash """
+    return p_file.replace('/', '\\')
+
+# --------------------------------------------------------------------
+#
 #                          Print and DEbug
 #
 # --------------------------------------------------------------------

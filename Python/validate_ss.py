@@ -32,6 +32,19 @@ import acc_lib as alib
 #
 # --------------------------------------------------------------------
 
+CLUB_LIST = ['aant', 'raa',  'racq', 'ract', 'rac']
+
+SYNC_DIR = 'C:/Users/PaulRoetman/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
+SYNC_DIR += 'Phase 3 - Deploy Phase - CARS Data and Data Management'
+
+# -- club files
+CLUB_DIR = SYNC_DIR + '/Data Templates by Club'
+COMMON_DIR = SYNC_DIR + '/Common Data Templates'
+
+# -- Master files
+MASTER_DIR = SYNC_DIR + '/Master Validated Templates by Club (Controlled)/CD4'
+MASTER_COMMON_DIR = SYNC_DIR + '/Master Validated Common Data Templates (Controlled)'
+
 # --------------------------------------------------------------------
 #
 #                          get filenames
@@ -61,21 +74,26 @@ def get_filenames(p_dir):
 # --------------------------------------------------------------------
 
 
-def cleanup_filenames(p_dict, p_type):
+def cleanup_filenames(p_list, p_type):
     """ get all files """
 
     if p_type == 'club':
         remove_str = 'Data Templates by Club/'
+    elif p_type == 'club_common':
+        remove_str = 'Common Data Templates/'
     elif p_type == 'master':
-        remove_str = 'CD4'
+        remove_str = 'CD4/'
     else:
-        remove_str = 'CD4'
+        remove_str = 'Master Validated Common Data Templates (Controlled)/'
 
-    for key, value in p_dict.items():
-        p_dict[key] = value.split(remove_str)[1]
+    l_list = p_list
+    p_list[:] = [x.split(remove_str)[1].lower() for x in l_list]
+    p_list[:] = [x.replace('incident management (inc nap)', 'incident management') for x in l_list]
 
+    if p_type == 'club_common':
+        p_list[:] = ['common/' + x for x in l_list]
 
-
+    return
 # --------------------------------------------------------------------
 #
 #                          compare columns
@@ -175,7 +193,7 @@ def cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres):
     """ compare the rowcount for each common tab. """
 
     alib.log_debug('cd rowcount')
-    perc_txt = '            Percentages: file: "{vF:30s}", tabs modified {vM:3.2f}%,'
+    perc_txt = '            Percentages: file: "{vF:60s}", tabs modified {vM:3.2f}%,'
     perc_txt += ' unchanged {vU:3.2f}%, count [{vC}], '
     l_ss_keys = p_ss_dict.keys()
     l_m_keys = sorted(p_m_dict.keys())
@@ -198,6 +216,7 @@ def cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres):
 
     p_totres['unchanged'] += unmod_tab
     p_totres['modified'] += modified_tab
+    p_totres['filecount'] += 1
 
     tot = modified_tab + unmod_tab
     mod = 0
@@ -299,13 +318,13 @@ def open_ss(p_ss):
 
     except FileNotFoundError as err:
         alib.p_e('Function open_ss, spreadsheet not found.')
-        alib.p_e('       speadsheet: [{}]'.format(p_ss))
+        alib.p_e('       speadsheet: [{}]'.format(alib.format_filename(p_ss)))
         alib.p_e('\n       error text [{}]'.format(err))
         ss_df_dict = None
 
     except Exception as err:
         alib.p_e('\nGeneric exception in function open_ss.')
-        alib.p_e('       spreadsheet: [{}]'.format(p_ss))
+        alib.p_e('       spreadsheet: [{}]'.format(alib.format_filename(p_ss)))
         alib.p_e('\n       error text [{}]'.format(err))
         ss_df_dict = None
 
@@ -330,7 +349,7 @@ def mcf_validate_tabs(p_list, p_clubs):
     def replace_club(p_str, p_list):
         l_str = p_str
         for c in p_list:
-            l_str = [f.replace(c, 'CLUBNAME') for f in l_str]
+            l_str = [f.replace(c.upper(), 'CLUBNAME') for f in l_str]
         return l_str
 
     err_txt = '    FILE 1 "{vM}" is different to FILE 2 "{vC}"'
@@ -340,8 +359,9 @@ def mcf_validate_tabs(p_list, p_clubs):
     master_keys = None
     master_name = None
 
-    for file_name, file_value in p_list.items():
-        ss_dict = open_ss(file_value)
+    for file_name in p_list:
+        l_file_name = CLUB_DIR  + '/' + file_name
+        ss_dict = open_ss(l_file_name)
         l_ss_keys = ss_dict.keys()
         l_new_keys = replace_club(l_ss_keys, p_clubs)
         l_new_keys.sort()
@@ -374,21 +394,20 @@ def mcf_validate_tabs(p_list, p_clubs):
 
 def merge_club_files(p_club_files):
 
-    l_clubs = ['AANT', 'RAA',  'RACQ', 'RACT', 'RAC']
-    l_club_files = p_club_files.copy()
+    proc_files=[]
+    full_files=[]
 
-    # flag any file that is not multi key
-    for row in l_club_files.keys():
-        if any(x in row for x in l_clubs):
-            pass
-        else:
-            l_club_files[row] = 'delme'
+    for row in p_club_files:
+        if club_specific_file(row):
+            l_file = row.split('/')[-1]
+            proc_files.append(l_file)
+            full_files.append(row)
 
-    # Remove all files from dict that are not multiclub
-    l_club_files = {k: v for k, v in l_club_files.items() if v != 'delme'}
+
+    x = 1
 
     # sort out a unique list of file types
-    file_list = list(l_club_files.keys())
+    file_list = [i.split(' - ')[0] for i in proc_files]
     file_list = [i.split(' -')[0] for i in file_list]
     file_list = [i.split('_')[0] for i in file_list]
 
@@ -400,16 +419,18 @@ def merge_club_files(p_club_files):
 
     for curr_file in uniq_file_list:
         alib.p_i('    process multi file type: "{}", validate file names'.format(curr_file))
-        curr_list = {k: v for k, v in l_club_files.items() if curr_file in k}
-        for club in l_clubs:
-            correct_name = '{} - {}.xlsx'.format(curr_file, club)
-            correct_name2 = '{}_{}.xlsx'.format(curr_file, club)
+        for l_club in CLUB_LIST:
+
+            curr_list = [k for k in proc_files if curr_file in k and l_club in k]
+
+            correct_name = '{} - {}.xlsx'.format(curr_file, l_club)
+            correct_name2 = '{}_{}.xlsx'.format(curr_file, l_club)
             if correct_name in curr_list or correct_name2 in curr_list:
                 pass
             else:
                 alib.p_e('        correct name not found in set - "{}"'.format(correct_name))
                 for f in curr_list:
-                    alib.p_i('            files in list: {}'.format(f))
+                    alib.p_i('            incorrect filename: {}'.format(f))
                 alib.p_i('')
 
     alib.p_i('----------------------------------', p_before=1)
@@ -418,8 +439,8 @@ def merge_club_files(p_club_files):
 
     for curr_file in uniq_file_list:
         alib.p_i('    process multi file type : "{}", validate tabs between clubs'.format(curr_file))
-        curr_list = {k: v for k, v in l_club_files.items() if curr_file in k}
-        mcf_validate_tabs(curr_list, l_clubs)
+        curr_list = [k for k in full_files if curr_file in k ]
+        mcf_validate_tabs(curr_list, CLUB_LIST)
 
     return
 # --------------------------------------------------------------------
@@ -439,33 +460,48 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
     totres = {}
     totres['unchanged'] = 0
     totres['modified'] = 0
+    totres['filecount'] = 0
+    totres['filemiss'] = 0
 
     # -- Loop through the club files
-    for row in p_club_files.values():
+    for row in p_club_files:
         # print(row)
-        curr_file = row.split('/')[-1]
-        alib.p_i('Validate club file: {}'.format(curr_file), p_before=1)
+        l_target_file = '/'.join(row.split('/')[1:])
+        l_club = row.split('/')[0]
 
-#        if curr_file == 'ESP Alerts - RAA.xlsx':
-#            x = 1
-
-        if curr_file in p_m_files:
-            m_file = p_m_files[curr_file]
-        elif curr_file in p_mc_files:
-            m_file = p_mc_files[curr_file]
+        if l_club == 'common':
+            l_file_name = COMMON_DIR + '/' + l_target_file
         else:
-            alib.p_e('    No master file found for {}'.format(curr_file))
+            l_file_name = CLUB_DIR  + '/' + row
+
+        # curr_file = row.split('/')[-1]
+        alib.p_i('Validate club file: {}'.format(row), p_before=1)
+
+        if l_target_file in p_m_files:
+            m_file = l_target_file
+            l_m_file_name = MASTER_DIR + '/' + m_file
+        elif l_target_file in p_mc_files:
+            m_file = l_target_file
+            l_m_file_name = MASTER_COMMON_DIR + '/' + m_file
+        else:
+            alib.p_e('    No master file found for {}'.format(row))
             m_file = None
+            totres['filemiss'] += 1
             continue
 
-        ss_df = open_ss(row)
+        if l_m_file_name is not None:
+            l_m_file_name = l_m_file_name.replace('/incident management/', '/incident management (inc nap)/')
+
+        ss_df = open_ss(l_file_name)
         if ss_df is None:
             alib.p_e('    Unable to open club spreadsheet, please review previous errors raised')
+            totres['filemiss'] += 1
             continue
 
-        m_df = open_ss(m_file)
+        m_df = open_ss(l_m_file_name)
         if m_df is None:
             alib.p_e('    Unable to open master spreadsheet, please review previous errors raised')
+            totres['filemiss'] += 1
             continue
 
         # Tidy up dict.
@@ -473,7 +509,10 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
         cleanup_ss(m_df)
 
         if ss_df is not None and m_df is not None:
-            compare_dict(curr_file, ss_df, m_df, totres)
+            compare_dict(row, ss_df, m_df, totres)
+        else:
+            totres['filemiss'] += 1
+
 
     perc_txt = '            Overall Percentages: tabs modified {vM:3.2f}% ({vMC}), unchanged {vU:3.2f}%,'
     perc_txt += ' total tab count [{vC}] '
@@ -489,6 +528,30 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
         unmod = 100 * (totunmod/tot)
 
     alib.p_i(perc_txt.format(vM=mod, vU=unmod, vC=tot, vMC=totmod))
+    alib.p_i('            Overall Percentages: Files processed: {}, files skipped {}'.format(totres['filecount'],
+                                                                                             totres['filemiss']))
+    return
+
+# --------------------------------------------------------------------
+#
+#                          club specific filename
+#
+# --------------------------------------------------------------------
+
+
+def club_specific_file(p_filename):
+    """ look for [club].xlsx on end of filename """
+    retval = None
+    for l_club in CLUB_LIST:
+        l_club_test = '{}.xlsx'.format(l_club)
+        l_len = len(l_club_test)
+        l_file_test = p_filename[-l_len:]
+        if l_file_test == l_club_test:
+            retval = l_club
+            break
+
+    return retval
+
 
 # --------------------------------------------------------------------
 #
@@ -497,24 +560,67 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
 # --------------------------------------------------------------------
 
 
-def validate_master_files(p_files, p_club_files, p_desc):
+def validate_master_files(p_files, p_club_files):
     """ validate club file exists for this master """
 
-    alib.p_i('-------------------------', p_before=1)
+    alib.p_i('---------------------', p_before=1)
     alib.p_i('Validate MASTER files')
-    alib.p_i('-------------------------', p_after=1)
+    alib.p_i('---------------------', p_after=1)
 
-    l_success_message = "Validate {vDesc} file: {vF:50} OK"
-    l_fail_message = "Validate {vDesc} file: {vF:50} FAIL"
+    l_success_message = "Validate Master file: {vF:70} OK"
+    l_fail_message = "Validate Master file: {vF:70} FAIL"
 
-    for row in p_files.values():
+    for row in p_files:
+        l_club = club_specific_file(row)
+
+        # loop through all clubs, validate exists.
+        if l_club is None:
+            for club in CLUB_LIST:
+                target_row = '{}/{}'.format(club, row)
+                alib.log_debug('    validate target row: [{}]'.format(target_row))
+                if target_row not in p_club_files:
+                    alib.p_e(l_fail_message.format(vF=target_row))
+                    alib.p_e('    No CLUB file found for this file')
+                else:
+                    alib.p_i(l_success_message.format(vF=target_row))
+
+        # just process this single club
+        else:
+            target_row = '{}/{}'.format(l_club, row)
+            alib.log_debug('    validate target row: [{}]'.format(target_row))
+            if target_row not in p_club_files:
+                alib.p_e(l_fail_message.format(vF=target_row))
+                alib.p_e('    No CLUB file found for this file')
+            else:
+                alib.p_i(l_success_message.format(vF=target_row))
+
+
+# --------------------------------------------------------------------
+#
+#                          validate master common
+#
+# --------------------------------------------------------------------
+
+
+def validate_master_common_files(p_files, p_club_files):
+    """ validate club file exists for this master """
+
+    alib.p_i('----------------------------', p_before=1)
+    alib.p_i('Validate MASTER COMMON files')
+    alib.p_i('----------------------------', p_after=1)
+
+    l_success_message = "Validate Master Common file: {vF:80} OK"
+    l_fail_message = "Validate Master Common file: {vF:80} FAIL"
+
+    for row in p_files:
         # print(row)
-        curr_file = row.split('/')[-1]
-        if curr_file not in p_club_files:
-            alib.p_e(l_fail_message.format(vF=curr_file, vDesc=p_desc))
+        target_row = '{}/{}'.format('common', row)
+        alib.log_debug('    validate target row: [{}]'.format(target_row))
+        if target_row not in p_club_files:
+            alib.p_e(l_fail_message.format(vF=target_row))
             alib.p_e('    No CLUB file found for this file')
         else:
-            alib.p_i(l_success_message.format(vF=curr_file, vDesc=p_desc))
+            alib.p_i(l_success_message.format(vF=target_row))
 
 # --- Program Init
 # --------------------------------------------------------------------
@@ -547,22 +653,24 @@ def initialise(p_filename):
     m_def_dir = 'master_OneDrive_2017-04-07/Master Validated Templates by Club (Controlled)'
     mc_def_dir = 'master_common_OneDrive_2017-04-07/Master Validated Common Data Templates (Controlled)'
 
-#    parser.add_argument('--ss',
-#                        help='spreadsheet',
-#                        required=False)
-
-    parser.add_argument('--clubdir',
+    parser.add_argument('--club_dir',
                         help='club files directory',
+                        default=CLUB_DIR,
+                        required=False)
+
+    parser.add_argument('--club_common_dir',
+                        help='club common files directory',
+                        default=COMMON_DIR,
                         required=False)
 
     parser.add_argument('--m_dir',
                         help='master directory',
-                        default='{}{}'.format(def_dir, m_def_dir),
+                        default=MASTER_DIR,
                         required=False)
 
     parser.add_argument('--mc_dir',
                         help='master common directory',
-                        default='{}{}'.format(def_dir, mc_def_dir),
+                        default=MASTER_COMMON_DIR,
                         required=False)
 
     # Add debug arguments
@@ -596,16 +704,20 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    club_files = get_filenames(args['clubdir'])
+    club_files = get_filenames(args['club_dir'])
+    club_common_files = get_filenames(args['club_common_dir'])
     m_files = get_filenames(args['m_dir'])
     mc_files = get_filenames(args['mc_dir'])
 
-    cleanup_filenames(club_files,'club')
-    cleanup_filenames(m_files,'master')
-    cleanup_filenames(mc_files,'master club')
+    cleanup_filenames(club_files, 'club')
+    cleanup_filenames(club_common_files, 'club_common')
+    cleanup_filenames(m_files, 'master')
+    cleanup_filenames(mc_files, 'master club')
 
-    validate_master_files(m_files, club_files, 'Master')
-    validate_master_files(mc_files, club_files, 'Master Common')
+    club_files += club_common_files
+
+    validate_master_files(m_files, club_files)
+    validate_master_common_files(mc_files, club_files)
 
     validate_club_files(club_files, m_files, mc_files)
     merge_club_files(club_files)

@@ -360,7 +360,7 @@ def mcf_validate_tabs(p_list, p_clubs):
     master_name = None
 
     for file_name in p_list:
-        l_file_name = CLUB_DIR  + '/' + file_name
+        l_file_name = CLUB_DIR + '/' + file_name
         ss_dict = open_ss(l_file_name)
         l_ss_keys = ss_dict.keys()
         l_new_keys = replace_club(l_ss_keys, p_clubs)
@@ -394,17 +394,14 @@ def mcf_validate_tabs(p_list, p_clubs):
 
 def merge_club_files(p_club_files):
 
-    proc_files=[]
-    full_files=[]
+    proc_files = []
+    full_files = []
 
     for row in p_club_files:
         if club_specific_file(row):
             l_file = row.split('/')[-1]
             proc_files.append(l_file)
             full_files.append(row)
-
-
-    x = 1
 
     # sort out a unique list of file types
     file_list = [i.split(' - ')[0] for i in proc_files]
@@ -439,7 +436,7 @@ def merge_club_files(p_club_files):
 
     for curr_file in uniq_file_list:
         alib.p_i('    process multi file type : "{}", validate tabs between clubs'.format(curr_file))
-        curr_list = [k for k in full_files if curr_file in k ]
+        curr_list = [k for k in full_files if curr_file in k]
         mcf_validate_tabs(curr_list, CLUB_LIST)
 
     return
@@ -472,7 +469,7 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
         if l_club == 'common':
             l_file_name = COMMON_DIR + '/' + l_target_file
         else:
-            l_file_name = CLUB_DIR  + '/' + row
+            l_file_name = CLUB_DIR + '/' + row
 
         # curr_file = row.split('/')[-1]
         alib.p_i('Validate club file: {}'.format(row), p_before=1)
@@ -512,7 +509,6 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
             compare_dict(row, ss_df, m_df, totres)
         else:
             totres['filemiss'] += 1
-
 
     perc_txt = '            Overall Percentages: tabs modified {vM:3.2f}% ({vMC}), unchanged {vU:3.2f}%,'
     perc_txt += ' total tab count [{vC}] '
@@ -649,9 +645,9 @@ def initialise(p_filename):
           """, formatter_class=argparse.RawTextHelpFormatter)
 
     # --- DB parameters ---
-    def_dir = 'C:/work/stuff/'
-    m_def_dir = 'master_OneDrive_2017-04-07/Master Validated Templates by Club (Controlled)'
-    mc_def_dir = 'master_common_OneDrive_2017-04-07/Master Validated Common Data Templates (Controlled)'
+#    def_dir = 'C:/work/stuff/'
+#    m_def_dir = 'master_OneDrive_2017-04-07/Master Validated Templates by Club (Controlled)'
+#    mc_def_dir = 'master_common_OneDrive_2017-04-07/Master Validated Common Data Templates (Controlled)'
 
     parser.add_argument('--club_dir',
                         help='club files directory',
@@ -716,9 +712,9 @@ def main():
 
     club_files += club_common_files
 
-    validate_master_files(m_files, club_files)
-    validate_master_common_files(mc_files, club_files)
-
+#    validate_master_files(m_files, club_files)
+#    validate_master_common_files(mc_files, club_files)
+#
     validate_club_files(club_files, m_files, mc_files)
     merge_club_files(club_files)
 

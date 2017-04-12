@@ -144,14 +144,10 @@ def bcp_create_extract(p_extract_template_s, p_tab, p_cols_df, p_con):
     l_cols_l = p_cols_df['COLUMN'].tolist()
     l_cols_s = ','.join(l_cols_l).lower()
 
-    if '.' in p_con['schema']:
-        l_schema = '.'.join('[' + x + ']' for x in p_con['schema'].split('.'))
-    else:
-        l_schema = '[' + p_con['schema'] + ']'
-
     p_prog = p_extract_template_s.format(vDBHost=p_con['host'],
-                                         vDBName=p_con['db'],
-                                         vSchema=l_schema,
+                                         vInstance=p_con['instance'],
+                                         vDB=p_con['db'],
+                                         vSchema=p_con['schema'],
                                          vTabFields=l_cols_s,
                                          vTab=p_tab.lower(),
                                          vWorkDir='c:\\tmp')
@@ -240,14 +236,20 @@ def initialise(p_filename):
                         required=False)
 
     def_txt = 'DEV'
-    parser.add_argument('--source_db',
-                        help='Enter source db',
+    parser.add_argument('--source_instance',
+                        help='Enter source instance (dev)',
                         default=def_txt,
                         required=False)
 
-    def_txt = 'cad_33.dbo'
+    def_txt = 'cad_33'
+    parser.add_argument('--source_db',
+                        help='Enter source database name (cad_33)',
+                        default=def_txt,
+                        required=False)
+
+    def_txt = 'dbo'
     parser.add_argument('--source_schema',
-                        help='Enter source schema',
+                        help='Enter source schema (dbo)',
                         default=def_txt,
                         required=False)
     # Add debug arguments
@@ -261,6 +263,7 @@ def initialise(p_filename):
     args = alib.args_validate(parser, log_filename)
 
     return (args, log_filename)
+
 
 # --------------------------------------------------------------------
 #
@@ -298,6 +301,7 @@ def main():
 
     con = {}
     con['host'] = args['source_host']
+    con['instance'] = args['source_instance']
     con['db'] = args['source_db']
     con['schema'] = args['source_schema']
 

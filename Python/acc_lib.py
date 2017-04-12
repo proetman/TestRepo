@@ -15,6 +15,7 @@ import re
 import sys
 import time
 from datetime import datetime
+import pyodbc
 import pandas as pd
 
 # import racq_conn_lib as rqconnlib
@@ -37,12 +38,7 @@ FAIL_GENERIC = -1
 FAIL_NO_DB_CONNECT = -2
 DAYS_FOR_DEEP_ANALYSE = 5
 
-ROOT_DIR_BI = '//intranet/teams/Technology/Technology Systems/BI/BI Team Documents'
-
-INFO_CLASS_SPREADSHEET = ROOT_DIR_BI + \
-    '/10.Group Data Insights/5.Source Data Replication/Information Classification.xlsx'
-
-EMAIL_DEFAULT = 'paul.roetman@racq.com.au,marinos.stylianou@racq.com.au'
+EMAIL_DEFAULT = 'paul.roetman@accnational.com.au,marinos.stylianou@racq.com.au'
 
 # RSReservedWords =  [ 'slartibartfast' ]
 # below is the "official" list of Redshift reserved words from
@@ -55,34 +51,6 @@ EMAIL_DEFAULT = 'paul.roetman@racq.com.au,marinos.stylianou@racq.com.au'
 DB_TYPE_REDSHIFT = 'RedShift'
 DB_TYPE_ORACLE = 'Oracle'
 DB_TYPE_MSSQL = 'MSSQL'
-
-
-RS_BRYTE_RESRVD_WORDS = \
-    ['AES128', 'AES256', 'ACTION', 'ALL', 'ALLOWOVERWRITE', 'ANALYSE', 'ANALYZE', 'AND', 'ANY',
-     'ARRAY',
-     'AS', 'ASC', 'AUTHORIZATION', 'BACKUP', 'BETWEEN', 'BINARY', 'BLANKSASNULL', 'BOTH',
-     'BYTEDICT', 'BZIP2', 'CASE', 'CAST', 'CHECK', 'COLLATE', 'COLUMN', 'COMMENT', 'CONSTRAINT',
-     'CREATE', 'CREDENTIALS', 'CROSS', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
-     'CURRENT_USER', 'CURRENT_USER_ID', 'DATE', 'DATETIME', 'DEFAULT', 'DEFERRABLE', 'DEFLATE',
-     'DEFRAG', 'DELTA',
-     'DELTA32K', 'DESC', 'DISABLE', 'DISTINCT', 'DO', 'ELSE', 'EMPTYASNULL', 'ENABLE', 'ENCODE',
-     'ENCRYPT', 'ENCRYPTION', 'END', 'EXCEPT', 'EXPLICIT', 'FALSE', 'FOR', 'FOREIGN', 'FREEZE',
-     'FROM', 'FULL', 'GLOBALDICT256', 'GLOBALDICT64K', 'GRANT', 'GROUP', 'GZIP', 'HAVING',
-     'IDENTITY', 'IGNORE', 'ILIKE', 'IN', 'INITIALLY', 'INNER', 'INTERSECT', 'INTERVAL', 'INTO',
-     'IS', 'ISNULL',
-     'JOIN', 'KEY', 'LANGUAGE', 'LEADING', 'LEFT', 'LIKE', 'LIMIT', 'LOCALTIME', 'LOCALTIMESTAMP',
-     'LUN',
-     'LUNS',
-     'LZO', 'LZOP', 'MINUS', 'MOSTLY13', 'MOSTLY32', 'MOSTLY8', 'NATURAL', 'NEW', 'NOT', 'NOTNULL',
-     'NULL', 'NULLS', 'OFF', 'OFFLINE', 'OFFSET', 'OID', 'OLD', 'ON', 'ONLY', 'OPEN', 'OR', 'ORDER',
-     'OUTER', 'OVERLAPS', 'PARALLEL', 'PARTITION', 'PASSWORD', 'PERCENT', 'PERMISSIONS', 'PLACING',
-     'PRIMARY',
-     'RAW', 'READRATIO', 'RECOVER', 'REFERENCES', 'RESPECT', 'REJECTLOG', 'RESORT', 'RESTORE',
-     'RIGHT', 'SELECT', 'SESSION_USER', 'SIMILAR', 'SOME', 'SYSDATE', 'SYSTEM', 'TABLE', 'TAG',
-     'TDES', 'TEXT255', 'TEXT32K', 'THEN', 'TIME', 'TIMESTAMP', 'TO', 'TOP', 'TRAILING', 'TRUE',
-     'TYPE',
-     'TRUNCATECOLUMNS', 'UNION', 'UNIQUE', 'USER', 'USING', 'VALID', 'VERBOSE', 'WALLET', 'WHEN',
-     'WHERE', 'WITH', 'WITHOUT', 'YEAR']
 
 MAIL_HEADER = """\
 <html>
@@ -112,7 +80,72 @@ MAIL_FOOTER = """\
 """
 
 MAIL_FROM_USER = 'noreply@racq.com.au'
+# --- DB Connect
+# --------------------------------------------------------------------
+#
+#                          connect to sql server
+#
+# --------------------------------------------------------------------
 
+
+def db_connect_mssql(p_con):
+    """
+    Create the connect string for python to connect to sql server db.
+    Examples on how to create odbc connects can be found here
+        http://www.visokio.com/kb/db/dsn-less-odbc
+    Data is pulled from Alias and User file to create this connection.
+    Returns None on fail.
+    """
+
+    l_host = p_con['host']
+    l_instance = p_con['instance']
+    l_db = p_con['db']
+
+    e_template = 'ERROR: Failed to connect to MSSQL Database. '
+    e_template += ' Server={vHost}\{vI}; Database={vDB}'
+    e_template += ' connect string: {vStr}'
+
+    connect_template = r'Driver={{SQL Server Native Client 12.0}};Server={vHost}\{vI};'
+    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+
+    connect_str = connect_template.format(vHost=l_host,
+                                          vI=l_instance,
+                                          vDB=l_db)
+
+    try:
+
+        db_conn = pyodbc.connect(connect_str)
+
+    except pyodbc.ProgrammingError as err:
+        print(err)
+        error_msg = e_template.format(vHost=l_host,
+                                      vI=l_instance,
+                                      vDB=l_db)
+        p_e(error_msg)
+        p_e(err)
+        return None
+
+    except pyodbc.DatabaseError as err:
+        print(err)
+        error_msg = e_template.format(vHost=l_host,
+                                      vI=l_instance,
+                                      vDB=l_db)
+        p_e(error_msg)
+        p_e(err)
+        return None
+
+    except pyodbc.Error as err:
+        print(err)
+        error_msg = e_template.format(vHost=l_host,
+                                      vI=l_instance,
+                                      vDB=l_db)
+        p_e(error_msg)
+        p_e(err)
+        return None
+
+    return db_conn
+
+# --- Init
 # --------------------------------------------------------------------
 #
 #                          init (every program should run this)

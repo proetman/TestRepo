@@ -31,6 +31,41 @@ import acc_lib as alib
 #                          constants
 #
 # --------------------------------------------------------------------
+# --- Sql Stuff
+# --------------------------------------------------------------------
+#
+#                          fetch tab col data
+#
+# --------------------------------------------------------------------
+
+
+def fetch_tab_col(p_db_conn):
+    """ fetch all tables and columns """
+
+    sql = """
+        SELECT  UPPER(c.table_schema)          AS table_schema,
+                UPPER(c.table_name)            AS table_name,
+                UPPER(c.column_name)           AS column_name,
+                c.data_type,
+                c.ORDINAL_POSITION,
+                case
+                    when pk.COLUMN_NAME = c.column_name THEN 'Y'
+                    ELSE 'N'
+                END                            as "primarykey",
+                case is_nullable
+                    when 'NO'     then 'Y'
+                    else               'N'
+                end                            as "mandatory"
+         FROM information_schema.columns c
+             LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk
+                 ON  OBJECTPROPERTY (OBJECT_ID (pk.CONSTRAINT_SCHEMA + '.' +
+                                     pk.CONSTRAINT_NAME),'IsPrimaryKey') = 1
+                 AND pk.TABLE_NAME = c.table_name
+                 AND pk.COLUMN_NAME =  c.column_name
+                 AND pk.TABLE_SCHEMA = c.table_schema
+                        """
+
+    dd_df = alib.read_table_data(p_db_conn, sql)
 
 # --------------------------------------------------------------------
 #
@@ -284,6 +319,16 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
+    con = {}
+    con['host'] = args['source_host']
+    con['instance'] = args['source_instance']
+    con['db'] = args['source_db']
+    con['schema'] = args['source_schema']
+
+    db_conn = alib.db_connect_mssql(con)
+
+
+
     extract_template_s = template_load_extract(args['templates'])
 
     l_extract_dir = args['bcp_target_dir']
@@ -299,13 +344,7 @@ def main():
     tab_a = create_unique_tab_list(csv_df)
     tab_a.sort()
 
-    con = {}
-    con['host'] = args['source_host']
-    con['instance'] = args['source_instance']
-    con['db'] = args['source_db']
-    con['schema'] = args['source_schema']
 
-    db_conn = alib.db_connect_mssql(con)
 
     for tab in tab_a:
         alib.p_i('Generate bcp program for {}'.format(tab))

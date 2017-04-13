@@ -34,17 +34,183 @@ import acc_lib as alib
 
 CLUB_LIST = ['aant', 'raa',  'racq', 'ract', 'rac']
 
-SYNC_DIR = 'C:/Users/PaulRoetman/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
-SYNC_DIR += 'Phase 3 - Deploy Phase - CARS Data and Data Management'
+# --- analyse
+# --------------------------------------------------------------------
+#
+#                          fetch all row counts
+#
+# --------------------------------------------------------------------
 
-# -- club files
-CLUB_DIR = SYNC_DIR + '/Data Templates by Club'
-COMMON_DIR = SYNC_DIR + '/Common Data Templates'
 
-# -- Master files
-MASTER_DIR = SYNC_DIR + '/Master Validated Templates by Club (Controlled)/CD4'
-MASTER_COMMON_DIR = SYNC_DIR + '/Master Validated Common Data Templates (Controlled)'
+def a_display_all_rowcounts(p_all_ss, p_all_tabs, p_row):
+    """
+    loop through all spreadsheets, get count of rows per tab.
 
+    This code is a bit hairy....
+    start with a dict of spreadsheets, 1 per club.
+       within each of them is a dict of TABS
+           within each TAB is the rows/columns of the actual spreadsheets
+
+    So, loop through each club (l_club)
+        loop through each tab
+            count rows, add result to print dict for this club
+
+    print headings
+    loop through print dict (one per club)
+        print result.
+
+    """
+    alib.p_i('{}Matrix report for "{}"'.format(10*' ', p_row), p_before=1, p_after=1)
+
+    result = {}
+    for l_club, l_ss in p_all_ss.items():
+
+        pr_result = ''
+        # loop through all tabs
+        for tab in p_all_tabs:
+            if tab == 'Database Schema' or tab == 'Version History':
+                continue
+
+            # see if this tab is in this spreadsheet
+            if tab in l_ss:
+                tab_data = l_ss[tab]
+                rowcount = len(tab_data.index)
+            else:
+                rowcount = -1                   # tab does not exists, set to -1
+            pr_result += '{vR:15} '.format(vR=rowcount)
+
+        # end for
+        result[l_club] = pr_result
+
+    l_heading = '{:31}'.format('Club')
+    l_heading2 = '{} '.format(30 * '-')
+
+    for tab in p_all_tabs:
+        if tab == 'Database Schema' or tab == 'Version History':
+            continue
+        l_heading += '{vR:>15} '.format(vR=tab[:15])
+        l_heading2 += '{vR:>15} '.format(vR=15 * '-')
+
+    alib.p_i(l_heading)
+    alib.p_i(l_heading2)
+
+    for key, value in result.items():
+        alib.p_i('{vK:30} {vR}'.format(vK=key, vR=value))
+
+    return True
+
+
+
+
+# --------------------------------------------------------------------
+#
+#                          fetch all tabs
+#
+# --------------------------------------------------------------------
+
+
+def a_fetch_all_tabs(p_all_ss):
+    """
+    loop through all spreadsheets, get all tab names.
+    """
+    tab_list = []
+
+    for key, value in p_all_ss.items():
+        for tab in value.keys():
+            tab_list.append(tab)
+
+    tab_list = list(set(tab_list))
+
+    return tab_list
+
+# --------------------------------------------------------------------
+#
+#                          Load ss into dict
+#
+# --------------------------------------------------------------------
+
+
+def a_load_ss(p_full_file_list, p_work_dir):
+    """
+    create a new dict, with each spreadsheet in it
+    """
+
+    l_ss_dict = {}
+
+    for key, value in p_full_file_list.items():
+        if key == 'master':
+            l_dir = p_work_dir['l_m_dir']
+        else:
+            l_dir = p_work_dir['l_c_dir']
+
+        l_file_name = l_dir + '/' + value
+        ss_dict = open_ss(l_file_name)
+        if ss_dict is not None:
+            l_ss_dict[key] = ss_dict
+        else:
+            alib.p_e('Unable to load spreadsheet {}, aborting'.format(l_file_name))
+            l_ss_dict = None
+            break
+
+
+    return l_ss_dict
+
+# --------------------------------------------------------------------
+#
+#                          analyse shallow
+#
+# --------------------------------------------------------------------
+
+
+def a_all_clubs_exist(p_full_file_list):
+    """
+    validate this list has all clubs and master in it
+    """
+
+    all_files_found = True
+    file_name = None
+
+    for l_club in CLUB_LIST:
+        if l_club not in p_full_file_list:
+            all_files_found = False
+            file_name = l_club
+
+    if 'master' not in p_full_file_list:
+        all_files_found = False
+        file_name = 'master'
+
+    if not all_files_found:
+        alib.p_e('Expected to file a club file for each club', p_before=1)
+        alib.p_e('Missing club [{}] from file list'.format(file_name))
+        for key, value in p_full_file_list.items():
+            alib.p_i('    found club: {}, file {}'.format(key, value))
+
+    return all_files_found
+
+# --------------------------------------------------------------------
+#
+#                          analyse shallow
+#
+# --------------------------------------------------------------------
+
+
+def analyse_shallow(p_full_file_list, p_work_dir, p_row):
+    """
+    Perform some quick and dirty analsys on the files
+    """
+
+    if not a_all_clubs_exist(p_full_file_list):
+        alib.p_e('Not all clubs found for this file')
+
+    all_ss = a_load_ss(p_full_file_list, p_work_dir)
+    if all_ss is None:
+        alib.p_e('Issues loading spreadsheets, not performing any more analysis')
+        return False
+
+    all_tabs = a_fetch_all_tabs(all_ss)
+    a_display_all_rowcounts(all_ss, all_tabs, p_row)
+
+# --- generic stuff
 # --------------------------------------------------------------------
 #
 #                          get filenames
@@ -344,7 +510,7 @@ def open_ss(p_ss):
 # --------------------------------------------------------------------
 
 
-def mcf_validate_tabs(p_list, p_clubs):
+def mcf_validate_tabs(p_list, p_clubs, p_work_dir):
     """ validate tabs are same between all files. """
     def replace_club(p_str, p_list):
         l_str = p_str
@@ -360,7 +526,7 @@ def mcf_validate_tabs(p_list, p_clubs):
     master_name = None
 
     for file_name in p_list:
-        l_file_name = CLUB_DIR + '/' + file_name
+        l_file_name = p_work_dir['l_c_dir'] + '/' + file_name
         ss_dict = open_ss(l_file_name)
         l_ss_keys = ss_dict.keys()
         l_new_keys = replace_club(l_ss_keys, p_clubs)
@@ -385,6 +551,66 @@ def mcf_validate_tabs(p_list, p_clubs):
                         alib.p_e('    tab in file1, not in file2: "{}"'.format(tab))
                 alib.p_i('')
 
+
+# --------------------------------------------------------------------
+#
+#                          create full file list
+#
+# --------------------------------------------------------------------
+
+
+def mcf_create_full_file_list(p_club_files, p_m_files, p_row):
+    """
+    Create an dict of files for this file type, one per club
+        f['racq'] = 'full path to file'
+        f['raa'] = 'full path to file'
+        f['master'] =  'full path to file'
+    """
+    full_file_list = {}
+
+    for file in p_club_files:
+        l_filename = file.split('/')[-1]
+        l_club = file.split('/')[0]
+        if l_filename == p_row:
+            full_file_list[l_club] = file
+
+    for file in p_m_files:
+        l_filename = file.split('/')[-1]
+        if l_filename == p_row:
+            full_file_list['master'] = file
+
+    return full_file_list
+
+# --------------------------------------------------------------------
+#
+#                          create full file list
+#
+# --------------------------------------------------------------------
+
+
+def mcf_create_full_file_list2(p_club_files, p_m_files, p_row):
+    """
+    Create an dict of files for this file type, one per club
+        f['racq'] = 'full path to file'
+        f['raa'] = 'full path to file'
+        f['master'] =  'full path to file'
+    """
+    full_file_list = {}
+
+    for file in p_club_files:
+        l_filename = file.split('/')[-1]
+        l_club = file.split('/')[0]
+        if p_row in l_filename:
+            full_file_list[l_club] = file
+
+    for file in p_m_files:
+        l_filename = file.split('/')[-1]
+        if l_filename == p_row:
+            full_file_list['master'] = file
+
+    return full_file_list
+
+
 # --------------------------------------------------------------------
 #
 #                          merge club
@@ -392,16 +618,26 @@ def mcf_validate_tabs(p_list, p_clubs):
 # --------------------------------------------------------------------
 
 
-def merge_club_files(p_club_files):
+def merge_club_files(p_club_files, p_m_files, p_work_dir):
 
+    # Create lists of files with club name in it, eg 'esp alerts - aant.xlsx'
+    # list of files with club name removed
     proc_files = []
+    # list of files with club name included
     full_files = []
+
+    # create a list of files with duplicates, but no club name, eg 'message groups.xlsx'
+    # there is one message groups.xlsx file per club.
+    dup_file = []
 
     for row in p_club_files:
         if club_specific_file(row):
             l_file = row.split('/')[-1]
             proc_files.append(l_file)
             full_files.append(row)
+        else:
+            l_file = row.split('/')[-1]
+            dup_file.append(l_file)
 
     # sort out a unique list of file types
     file_list = [i.split(' - ')[0] for i in proc_files]
@@ -409,6 +645,22 @@ def merge_club_files(p_club_files):
     file_list = [i.split('_')[0] for i in file_list]
 
     uniq_file_list = list(set(file_list))
+
+    dup_files_list = [x for x in dup_file if dup_file.count(x) > 1]
+    dup_files_list = list(set(dup_files_list))
+
+    for row in uniq_file_list:
+        full_file_list = mcf_create_full_file_list2(p_club_files, p_m_files, row)
+        analyse_shallow(full_file_list, p_work_dir, row)
+
+    for row in dup_files_list:
+        full_file_list = mcf_create_full_file_list(p_club_files, p_m_files, row)
+        analyse_shallow(full_file_list, p_work_dir, row)
+
+
+    return
+    # at this point, have a list of all multi file groups  that have club name embeded (unique_file_list)
+    # and another list that have no club name embeded (dup_files_list)
 
     alib.p_i('----------------------------------', p_before=1)
     alib.p_i('Validate multi club files, stage 1')
@@ -437,7 +689,7 @@ def merge_club_files(p_club_files):
     for curr_file in uniq_file_list:
         alib.p_i('    process multi file type : "{}", validate tabs between clubs'.format(curr_file))
         curr_list = [k for k in full_files if curr_file in k]
-        mcf_validate_tabs(curr_list, CLUB_LIST)
+        mcf_validate_tabs(curr_list, CLUB_LIST, p_work_dir)
 
     return
 # --------------------------------------------------------------------
@@ -447,7 +699,7 @@ def merge_club_files(p_club_files):
 # --------------------------------------------------------------------
 
 
-def validate_club_files(p_club_files, p_m_files, p_mc_files):
+def validate_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
     """ Validate each of the club files """
 
     alib.p_i('-------------------------', p_before=1)
@@ -467,19 +719,19 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files):
         l_club = row.split('/')[0]
 
         if l_club == 'common':
-            l_file_name = COMMON_DIR + '/' + l_target_file
+            l_file_name = p_work_dir['l_cc_dir'] + '/' + l_target_file
         else:
-            l_file_name = CLUB_DIR + '/' + row
+            l_file_name = p_work_dir['l_c_dir'] + '/' + row
 
         # curr_file = row.split('/')[-1]
         alib.p_i('Validate club file: {}'.format(row), p_before=1)
 
         if l_target_file in p_m_files:
             m_file = l_target_file
-            l_m_file_name = MASTER_DIR + '/' + m_file
+            l_m_file_name = p_work_dir['l_m_dir'] + '/' + m_file
         elif l_target_file in p_mc_files:
             m_file = l_target_file
-            l_m_file_name = MASTER_COMMON_DIR + '/' + m_file
+            l_m_file_name = p_work_dir['l_mc_dir'] + '/' + m_file
         else:
             alib.p_e('    No master file found for {}'.format(row))
             m_file = None
@@ -651,22 +903,22 @@ def initialise(p_filename):
 
     parser.add_argument('--club_dir',
                         help='club files directory',
-                        default=CLUB_DIR,
+                        default=None,
                         required=False)
 
     parser.add_argument('--club_common_dir',
                         help='club common files directory',
-                        default=COMMON_DIR,
+                        default=None,
                         required=False)
 
     parser.add_argument('--m_dir',
                         help='master directory',
-                        default=MASTER_DIR,
+                        default=None,
                         required=False)
 
     parser.add_argument('--mc_dir',
                         help='master common directory',
-                        default=MASTER_COMMON_DIR,
+                        default=None,
                         required=False)
 
     # Add debug arguments
@@ -700,10 +952,44 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    club_files = get_filenames(args['club_dir'])
-    club_common_files = get_filenames(args['club_common_dir'])
-    m_files = get_filenames(args['m_dir'])
-    mc_files = get_filenames(args['mc_dir'])
+    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
+    default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
+    default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
+
+    # -- club files
+    default_club_dir = default_sync_dir + '/Data Templates by Club'
+    default_club_common_dir = default_sync_dir + '/Common Data Templates'
+
+# -- Master files
+    default_master_dir = default_sync_dir + '/Master Validated Templates by Club (Controlled)/CD4'
+    default_master_common_dir = default_sync_dir + '/Master Validated Common Data Templates (Controlled)'
+
+    work_dir = {}
+
+    if args['club_dir'] is None:
+        work_dir['l_c_dir'] = default_club_dir
+    else:
+        work_dir['l_c_dir'] = args['club_dir']
+
+    if args['club_common_dir'] is None:
+        work_dir['l_cc_dir'] = default_club_common_dir
+    else:
+        work_dir['l_cc_dir'] = args['club_common_dir']
+
+    if args['m_dir'] is None:
+        work_dir['l_m_dir'] = default_master_dir
+    else:
+        work_dir['l_m_dir'] = args['m_dir']
+
+    if args['mc_dir'] is None:
+        work_dir['l_mc_dir'] = default_master_common_dir
+    else:
+        work_dir['l_mc_dir'] = args['mc_dir']
+
+    club_files = get_filenames(work_dir['l_c_dir'])
+    club_common_files = get_filenames(work_dir['l_cc_dir'])
+    m_files = get_filenames(work_dir['l_m_dir'])
+    mc_files = get_filenames(work_dir['l_mc_dir'])
 
     cleanup_filenames(club_files, 'club')
     cleanup_filenames(club_common_files, 'club_common')
@@ -715,8 +1001,8 @@ def main():
 #    validate_master_files(m_files, club_files)
 #    validate_master_common_files(mc_files, club_files)
 #
-    validate_club_files(club_files, m_files, mc_files)
-    merge_club_files(club_files)
+#    validate_club_files(club_files, m_files, mc_files, work_dir)
+    merge_club_files(club_files, m_files, work_dir)
 
     alib.p_i('Done...')
 

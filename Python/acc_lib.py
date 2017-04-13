@@ -1399,16 +1399,24 @@ def p_d(p_str, p_end=None):
 # --------------------------------------------------------------------
 
 
-def p_e(p_str, p_end=None):
+def p_e(p_str, p_end=None, p_before=None, p_after=None):
     """
     print str to screen
     and print to debug
     """
+    if p_before is not None:
+        for i in range(0, p_before):
+            log_error('')
+
     if p_end is None:
         print(p_str)
     else:
         print(p_str, end=p_end)
     log_error(p_str)
+
+    if p_after is not None:
+        for i in range(0, p_after):
+            log_error('')
 
 # --------------------------------------------------------------------
 #

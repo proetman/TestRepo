@@ -105,7 +105,7 @@ def db_connect_mssql(p_con):
     e_template += ' Server={vHost}\{vI}; Database={vDB}'
     e_template += ' connect string: {vStr}'
 
-    connect_template = r'Driver={{SQL Server Native Client 12.0}};Server={vHost}\{vI};'
+    connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
     connect_template += 'Database={vDB};Trusted_Connection=yes;'
 
     connect_str = connect_template.format(vHost=l_host,
@@ -144,6 +144,183 @@ def db_connect_mssql(p_con):
         return None
 
     return db_conn
+
+# --------------------------------------------------------------------
+#
+#                          odbc sql exec
+#
+# --------------------------------------------------------------------
+
+
+def odbc_sql_exec(p_conn, p_sql):
+    """
+    Execute SQL Statement
+    return True or False
+    """
+
+    log_debug('    odbc execute SQL: [' + p_sql + '].')
+
+    try:
+        cur = p_conn.cursor()
+
+        cur.execute(p_sql)
+        cur.close()
+
+    except pyodbc.ProgrammingError as err:
+        cur.close()
+        odbc_sql_exec(p_conn, 'rollback')
+        log_debug('    result FAIL')
+        log_critical("\nexec_sqlddl  Error({0})".format(err))
+        return False
+
+    except pyodbc.Error as err:
+        cur.close()
+        odbc_sql_exec(p_conn, 'rollback')
+        log_critical("\nexec_sqlddl  ProgrammingError({0})".format(err))
+        log_critical("\nexec_sqlddl  Failed executing sql : " + p_sql)
+        return False
+
+    log_debug('    execute ok, return TRUE')
+    return True
+
+# --------------------------------------------------------------------
+#
+#              run ODBC (Redshift/MS SQL) SQL  fetch data and count
+#
+# --------------------------------------------------------------------
+
+
+def odbc_sql_fetch(p_conn, p_sql, p_arraysize=10000):
+    """
+    Execute Redshift or MSSQL SQL statement, return the rows as a list.
+    returns None if there is no data found.
+    """
+
+    log_debug('Start odbc sql fetch, sql = [{}]'.format(p_sql))
+
+    e_template = '\nracq_conn_lib.odbc_sql_fetch failed when executing sql : {vSQL}'
+    e_template += '\nERROR: during data fetch: err = {vErr}'
+
+    try:
+        cur = p_conn.cursor()
+        cur.arraysize = p_arraysize
+        cur.execute(p_sql)
+        rows = cur.fetchall()
+        len_rows = len(rows)
+
+    except pyodbc.Error as err:
+        log_critical(e_template.format(vSQL=p_sql, vErr=err))
+        odbc_sql_exec(p_conn, 'rollback')
+        rows = None
+        len_rows = 'None'
+
+    log_debug('finish odbc sql fetch, row count = {}'.format(len_rows))
+
+    cur.close()
+    return rows
+# --------------------------------------------------------------------
+#
+#                          odbc sql exec
+#
+# --------------------------------------------------------------------
+
+
+def odbc_sql_exec2(p_conn, p_sql):
+    """
+    Execute SQL Statement
+    return rowcount
+    """
+
+    log_debug('    odbc execute SQL: [' + p_sql + '].')
+
+    try:
+        cur = p_conn.cursor()
+
+        cur.execute(p_sql)
+        rowcount = cur.rowcount
+        cur.close()
+
+    except pyodbc.ProgrammingError as err:
+        cur.close()
+        odbc_sql_exec(p_conn, 'rollback')
+        log_debug('    result FAIL')
+        log_critical("\nexec_sqlddl  Error({0})".format(err))
+        rowcount = None
+
+    except pyodbc.Error as err:
+        cur.close()
+        odbc_sql_exec(p_conn, 'rollback')
+        log_critical("\nexec_sqlddl  ProgrammingError({0})".format(err))
+        log_critical("\nexec_sqlddl  Failed executing sql : " + p_sql)
+        rowcount = None
+
+    if rowcount is None:
+        log_debug('    execute ok, return rowcount = None')
+    else:
+        log_debug('    execute ok, return rowcount = {}'.format(rowcount))
+
+    return rowcount
+
+# --------------------------------------------------------------------
+#
+#        Read Data into Dataframe
+#
+# --------------------------------------------------------------------
+
+
+def read_table_data(p_db_conn, p_sql,
+                    p_description=None,
+                    p_display_info=True,
+                    p_chunksize=None,
+                    p_force_uppercase_headings=True):
+    """
+    Read table data and load into dataframe
+    Any issues, and it returns None
+
+    NOTE: If p_chunksize is set to anything above 0, this will return a GENERATOR.
+          It will not return a dataframe.
+          This generator can then be used to call data chunk by chunk.
+
+    """
+    log_debug('start read table data, sql = [{}]'.format(p_sql))
+
+    if p_sql is None:
+        print('No SQL passed into function, returning None')
+        return None
+
+    if p_description is None:
+        l_desc = '        Read data'
+    else:
+        l_desc = '        Read {} data'.format(p_description)
+
+    if p_chunksize is None:
+        if p_display_info:
+            p_i(l_desc, p_end=" ")
+            sys.stdout.flush()
+
+    try:
+        l_df = pd.read_sql(p_sql, p_db_conn, chunksize=p_chunksize)
+
+        if p_chunksize is None:
+            if p_force_uppercase_headings:
+                l_df.columns = l_df.columns.str.upper()
+
+            if p_display_info:
+                count_rows = len(l_df.index)
+                p_i('{} rows'.format(count_rows))
+
+    except pd.io.sql.DatabaseError as err:
+        p_e('ERROR raised running SQL, please manually review')
+        p_e('      error text: {}'.format(err))
+        odbc_sql_exec(p_db_conn, 'rollback')
+        return None
+
+    if p_chunksize is None:
+        log_debug('    read table data, row count fetch = [{}]'.format(len(l_df.index)))
+
+    return l_df
+
+
 
 # --- Init
 # --------------------------------------------------------------------
@@ -221,449 +398,8 @@ def safe_lower(p_str):
 
     return new_str
 
-# --- Info Classification Functions
-
-# --------------------------------------------------------------------
-#
-#                          Load Info Class
-#
-# --------------------------------------------------------------------
-
-
-def load_info_classification(p_conn, p_class_tab, p_multiple_schema):
-    """
-    Load the spreadsheet info classification into a dataframe.
-    return the dataframe.
-
-    Special case for Cisco where all table names and column names are case sensitive.
-
-    Note: only the table and column columns are NOT converted to uppercase, the rest are.
-
-    """
-
-    if p_multiple_schema:
-
-        p_i('    Fetch info classification from spreadsheet (multiple schemas)')
-        ss_info_class_df = ss_info_classification_fetch_mod(p_class_tab, p_uppercase=True)
-        if ss_info_class_df is None:
-            return None
-
-        ss_info_class_df['OWNER'] = ss_info_class_df['OWNER'].str.upper()
-
-        if '.' in p_conn['schema']:
-            l_schema = p_conn['schema'].split('.')[1]
-        else:
-            l_schema = p_conn['schema']
-
-        this_owner = ss_info_class_df['OWNER'][0].split(':')[0] + ':' + l_schema.upper()
-        schema_ind = ss_info_class_df['OWNER'] == this_owner
-
-        new_info_class_df = ss_info_class_df[schema_ind]
-
-    else:
-
-        case_sensitive = False
-        if p_class_tab == 'Cisco':
-            case_sensitive = True
-
-        ss_info_class_df = ss_info_classification_fetch(p_class_tab, p_uppercase=True,
-                                                        p_case_sensitive=case_sensitive)
-        if ss_info_class_df is None:
-            return None
-
-        new_info_class_df = ss_info_class_df
-
-    # -- Test loaded data
-    if ss_info_classification_cols_contains_nulls(new_info_class_df):
-        p_e('')
-        p_e('Warning - Data not fully populated in Info Classification Spreadsheet.')
-        p_e('          Continue processing anyway....')
-        p_e('')
-
-    return new_info_class_df
-
-# --------------------------------------------------------------------
-#
-#                          fetch mapping rules
-#
-# --------------------------------------------------------------------
-
-
-def ss_info_classification_fetch(p_tab_name, p_uppercase=False, p_case_sensitive=False):
-    """
-    Load the Info classification spreadsheet into a dataframe.
-
-    Columns to use: 'Table Name',  'Column', 'Primary Key', 'Treatment', 'Data Type'
-
-    Current available sheets within the spreadsheet are (23-Sep-2016):
-        Arnie
-        BillingCenter
-        ClaimsCenter
-        CAD
-        CARS
-        Cisco
-        CoreMetrics
-        CTP
-        DAX
-        EWFM
-        ETLSpike
-        Focus
-        Genesys
-        Genesys_dnu
-        GlassesGuide
-        HAIncident
-        IQ
-        LifeIns
-        LifetimeGuarantee
-        LimeSurvey
-        MARS
-        MRMTables
-        MRMViews
-        PolicyCenter
-        Rewards
-        Subscriptions
-    """
-    data_dir = TEST_RESULT_DIRS['data']
-    ic_file = 'Information Classification'
-    h5file_template = '{wd}/{file}_{sheet}.h5'
-    h5file = h5file_template.format(wd=data_dir,
-                                    file=ic_file,
-                                    sheet=p_tab_name)
-
-    if os.path.isfile(h5file):
-        h5file_disp = h5file.replace('/', '\\')
-        print('\nReading hd5 copy of Info Classification spreadsheet from {}'.format(h5file_disp))
-        print('if out of date, just delete the h5 file, it will be regenerated automagically\n')
-        ss_df = pd.read_hdf(h5file, 'ic')
-    else:
-
-        try:
-            print('... ... Opening spreadsheet, this takes a minute or so')
-            ss_df = pd.read_excel(INFO_CLASS_SPREADSHEET,
-                                  p_tab_name,
-                                  skiprows=0,
-                                  parse_cols=[0, 1, 2, 5, 8],
-                                  index_col=None)
-            ss_df.columns = ['Table_Name', 'Column', 'Primary_Key', 'Treatment', 'Data_Type']
-            ss_df.reset_index(drop=True, inplace=True)
-
-            # -- Remove blanks, this will stop the pickle error on save to h5
-            ss_df['Primary_Key'].where(pd.notnull(ss_df['Primary_Key']), 'N', inplace=True)
-
-            # -- convert to upper case.
-            if p_case_sensitive is False:
-                ss_df.loc[:, 'Column'] = ss_df.loc[:, 'Column'].str.upper()
-
-            ss_df_allc_ind = ss_df['Column'].str.upper() == 'ALL COLUMNS'
-            ss_df.loc[ss_df_allc_ind, 'Data_Type'] = 'ALL COLUMNS'
-
-            # Convert some columns to uppper case (including column headings)
-            if p_uppercase:
-                for col in ss_df.columns:
-                    if p_case_sensitive and col in ('Table_Name', 'Column'):
-                        pass
-                    else:
-                        ss_df.loc[:, col] = ss_df.loc[:, col].str.upper()
-
-                ss_df.columns = ss_df.columns.str.upper()
-
-            hdf = pd.HDFStore(h5file)
-            hdf.put('ic', ss_df)
-            hdf.close()
-
-        except FileNotFoundError as err:
-            p_e('Function ss_info_classification_fetch, spreadsheet not found. Aborting.')
-            p_e('       speadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-            p_e('\n       error text [{}]'.format(err))
-            return None
-
-        except Exception as err:
-            p_e('\nGeneric exception in function ss_info_classification_fetch.')
-            p_e('       probably incorrect sheet name. Aborting.')
-            p_e('       spreadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-            p_e('       sheet name: [{}]'.format(p_tab_name))
-            p_e('\n       error text [{}]'.format(err))
-            return None
-
-    # -- if there are nulls, work out which columns have the null values.
-    #
-    # Note: You may receive the error:
-    #   PerformanceWarning:  your performance may suffer as PyTables will pickle object types ....
-    # This only occurs if there are NULLS.
-    # and there may always be nulls in the primary key column.
-    #
-
-    return ss_df
-
-# --------------------------------------------------------------------
-#
-#                         dump cleanup ss
-#
-# --------------------------------------------------------------------
-
-
-def dump_cleanup_ss(p_ss_dict):
-    """
-    Cleanup the dictionary of all tabs from the Info Class spreadsheet
-    """
-    # {k:v for k,v in p_ss_dict.items() if k[0:2] == 'i_'}
-
-    new_dict = {}
-
-    for key, value in p_ss_dict.items():
-        if key[0:2] == 'i_':
-            pass
-        else:
-            new_dict[key] = p_ss_dict[key]
-
-    return new_dict
-
-
-# --------------------------------------------------------------------
-#
-#                         dump cleanup ss
-#
-# --------------------------------------------------------------------
-
-def dump_save(p_tab, p_ss_df, p_standard):
-    """
-    Cleanup the dictionary of all tabs from the Info Class spreadsheet
-    """
-
-    data_dir = TEST_RESULT_DIRS['data']
-    ic_file = 'Information Classification'
-
-    if p_standard:
-        cols = [0, 1, 2, 5, 8]
-        col_names = ['Table_Name', 'Column', 'Primary_Key', 'Treatment', 'Data_Type']
-        h5file_template = '{wd}/{file}_{sheet}.h5'
-    else:
-        cols = [0, 1, 2, 5, 7, 8]
-        col_names = ['Table_Name', 'Column', 'Primary_Key', 'Treatment', 'Owner', 'Data_Type']
-        h5file_template = '{wd}/{file}_{sheet}_mod.h5'
-
-    h5file = h5file_template.format(wd=data_dir,
-                                    file=ic_file,
-                                    sheet=p_tab)
-
-    # -- Remove columns not required.
-    counter = 0
-    for col in p_ss_df.columns:
-        if counter in cols:
-            pass
-        else:
-            p_ss_df.drop(col, axis=1, inplace=True)
-
-        counter += 1
-
-    # -- Update column headings
-    p_ss_df.reset_index(drop=True, inplace=True)
-    p_ss_df.columns = col_names
-
-    # -- Remove blanks, this will stop the pickle error on save to h5
-    p_ss_df['Primary_Key'].where(pd.notnull(p_ss_df['Primary_Key']), 'N', inplace=True)
-
-    # -- convert to upper case.
-    p_ss_df.loc[:, 'Column'] = p_ss_df.loc[:, 'Column'].str.upper()
-
-    p_ss_df_allc_ind = p_ss_df['Column'].str.upper() == 'ALL COLUMNS'
-    p_ss_df.loc[p_ss_df_allc_ind, 'Data_Type'] = 'ALL COLUMNS'
-
-    # Convert some columns to uppper case (including column headings)
-    for col in p_ss_df.columns:
-        if col in ('Table_Name', 'Column'):
-            pass
-        else:
-            p_ss_df.loc[:, col] = p_ss_df.loc[:, col].str.upper()
-
-    p_ss_df.columns = p_ss_df.columns.str.upper()
-
-    # Test for null values
-    ss_info_classification_cols_contains_nulls(p_ss_df)
-
-    hdf = pd.HDFStore(h5file)
-    hdf.put('ic', p_ss_df)
-    hdf.close()
-
-# --------------------------------------------------------------------
-#
-#                          fetch mapping rules
-#
-# --------------------------------------------------------------------
-
-
-def dump_all_h5_info_classification():
-    """
-    open info class spreadsheet
-    for each tab (with a few exceptions)
-        save to h5 file as standard
-        save to h5 file as multi schema
-    """
-
-    # load all tabs in standard format
-    try:
-        ss_standard_df = pd.read_excel(INFO_CLASS_SPREADSHEET, None)
-        ss_multi_df = pd.read_excel(INFO_CLASS_SPREADSHEET, None)
-
-    except FileNotFoundError as err:
-        p_e('Function dump_all_h5_info_classification, spreadsheet not found. Aborting.')
-        p_e('       speadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-        p_e('\n       error text [{}]'.format(err))
-        return None
-
-    except Exception as err:
-        p_e('\nGeneric exception in function dump_all_h5_info_classification.')
-        p_e('       spreadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-        p_e('\n       error text [{}]'.format(err))
-        return None
-
-    # remove tabs that start with "i_"
-    ss_standard_df = dump_cleanup_ss(ss_standard_df)
-    ss_multi_df = dump_cleanup_ss(ss_multi_df)
-
-    for tab, ss_df in ss_standard_df.items():
-        p_i('    Save standard tab {}'.format(tab))
-        dump_save(tab, ss_df, p_standard = True)
-
-    for tab, mm_df in ss_multi_df.items():
-        p_i('    Save multi tab {}'.format(tab))
-        dump_save(tab, mm_df, p_standard = False)
-
-    return
-
-# --------------------------------------------------------------------
-#
-#                          fetch mapping rules
-#
-# --------------------------------------------------------------------
-
-
-def ss_info_classification_cols_contains_nulls(p_df):
-    """
-    Test to see if any of the classifcation columns contain nulls.
-    """
-    # -- if there are nulls, work out which columns have the null values.
-    #
-    # Note: You may receive the error:
-    #   PerformanceWarning:  your performance may suffer as PyTables will pickle object types ....
-    # This only occurs if there are NULLS.
-    # and there may always be nulls in the primary key column.
-    #
-    overall_test_result = False
-
-    test_for_nulls = p_df.isnull()
-    test_for_nulls_result = test_for_nulls.any().any()
-
-    if test_for_nulls_result:
-        for col in p_df.columns:
-            col_test_for_nulls = p_df[col].isnull()
-            col_test_for_nulls_result = col_test_for_nulls.any().any()
-            if col_test_for_nulls_result:
-
-                overall_test_result = True
-
-                p_e('* * * WARNING * * * WARNING * * * WARNING * * *')
-                p_e('* * * WARNING * * * WARNING * * * WARNING * * *')
-                p_e('    WARNING - NULL data found in spreadsheet')
-                p_e('    Column {} should be fully populated'.format(col))
-                p_e('    -- some values are blank')
-                p_e('* * * WARNING * * * WARNING * * * WARNING * * *')
-                p_e('* * * WARNING * * * WARNING * * * WARNING * * *')
-                p_e('')
-
-    return overall_test_result
-
-# --------------------------------------------------------------------
-#
-#                          fetch mapping rules
-#
-# --------------------------------------------------------------------
-
-
-def ss_info_classification_fetch_mod(p_tab_name, p_uppercase=False):
-    """
-    This is a modified version of the function rqlib.ss_info_classification_fetch.
-    It fetches the additional column of "owner", and uses this to determine which
-    schema the data is stored in.
-
-    Load the Info classification spreadsheet into a dataframe.
-
-    Columns to use: 'Table Name',  'Column', 'Primary Key', 'Treatment', 'Data_Type, Owner'
-
-    """
-    data_dir = TEST_RESULT_DIRS['data']
-    ic_file = 'Information Classification'
-    h5file_template = '{wd}/{file}_{sheet}_mod.h5'
-    h5file = h5file_template.format(wd=data_dir,
-                                    file=ic_file,
-                                    sheet=p_tab_name)
-
-    if os.path.isfile(h5file):
-        h5file_disp = h5file.replace('/', '\\')
-        print('\nReading hd5 copy of Info Classification spreadsheet from {}'.format(h5file_disp))
-        print('if out of date, just delete the h5 file, it will be regenerated automagically\n')
-        ss_df = pd.read_hdf(h5file, 'ic')
-    else:
-
-        try:
-            print('... ... Opening spreadsheet, this takes a minute or so')
-            ss_df = pd.read_excel(INFO_CLASS_SPREADSHEET,
-                                  p_tab_name,
-                                  skiprows=0,
-                                  parse_cols=[0, 1, 2, 5, 7, 8],
-                                  index_col=None)
-            ss_df.columns = ['Table_Name',
-                             'Column',
-                             'Primary_Key',
-                             'Treatment',
-                             'Owner',
-                             'Data_Type']
-
-            ss_df.reset_index(drop=True, inplace=True)
-
-            # -- Remove blanks, this will stop the pickle error on save to h5
-            ss_df['Primary_Key'].where(pd.notnull(ss_df['Primary_Key']), 'N', inplace=True)
-
-            # -- Remove blanks from data type for all columns type records.
-            ss_df.loc[:, 'Column'] = ss_df.loc[:, 'Column'].str.upper()
-            ss_df_allc_ind = ss_df['Column'] == 'ALL COLUMNS'
-            ss_df.loc[ss_df_allc_ind, 'Data_Type'] = 'ALL COLUMNS'
-
-            # Convert all spreadsheet data to uppper case (including column headings)
-            if p_uppercase:
-                for col in ss_df.columns:
-                    ss_df[col] = ss_df.loc[:, col].str.upper()
-
-                ss_df.columns = ss_df.columns.str.upper()
-
-            # -- Replace any NaN with None in Object columns.
-            string_df = ss_df.select_dtypes(include=['object'])
-            for col in string_df.columns:
-                ss_df[col].where(pd.notnull(ss_df[col]), None, inplace=True)
-
-            p_i('Save Info Class doc to h5 file {}'.format(h5file.replace('/', '\\')))
-            hdf = pd.HDFStore(h5file)
-            hdf.put('ic', ss_df)
-            hdf.close()
-
-        except FileNotFoundError as err:
-            print('\nERROR: ss_info_classification_fetch, spreadsheet not found. Aborting.')
-            print('       speadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-            print('\n       error text [{}]'.format(err))
-            return None
-
-        except Exception as err:
-            print('\nERROR: generic exception in function ss_info_classification_fetch.')
-            print('       probably incorrect sheet name. Aborting.')
-            print('       spreadsheet: [{}]'.format(INFO_CLASS_SPREADSHEET))
-            print('       sheet name: [{}]'.format(p_tab_name))
-            print('\n       error text [{}]'.format(err))
-            return None
-
-    return ss_df
 
 # --- OS paths etc
-
 # --------------------------------------------------------------------
 #
 #                          fetch arg numb
@@ -841,27 +577,6 @@ def test_oracle_version_ms_proc(p_conn):
         return True
 
     return False
-
-# --------------------------------------------------------------------
-#
-#                          Fetch Oracle Version
-#
-# --------------------------------------------------------------------
-
-
-def fetch_oracle_version(p_conn):
-    """ Fetch the version of oracle """
-    log_debug('fetch oracle version')
-
-    sql = "select banner from v$version where upper(banner) like 'ORACLE DATABASE%'"
-
-    fetched_rows = rqconnlib.ora_sql_fetch(p_conn, sql)
-    if len(fetched_rows) == 1:
-        fetched_ora_ver = fetched_rows[0][0]
-    else:
-        fetched_ora_ver = None
-
-    return fetched_ora_ver
 
 # --------------------------------------------------------------------
 #

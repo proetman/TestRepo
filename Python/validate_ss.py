@@ -67,6 +67,8 @@ def a_display_all_rowcounts(p_all_ss, p_all_tabs, p_row):
     exclude_tabs = ['Database Schema', 'Version History', 'Version Control']
 
     result = {}
+    p_all_tabs.sort()
+
     for tab in p_all_tabs:
         pr_result = ''
         if tab in exclude_tabs:
@@ -202,6 +204,7 @@ def a_load_ss(p_full_file_list, p_work_dir):
 
     for key, value in p_full_file_list.items():
         if key == 'master':
+            value = value.replace('incident management/', 'incident management (inc nap)/')
             l_dir = p_work_dir['l_m_dir']
         else:
             l_dir = p_work_dir['l_c_dir']
@@ -631,12 +634,12 @@ def mcf_create_full_file_list(p_club_files, p_m_files, p_row):
     for file in p_club_files:
         l_filename = file.split('/')[-1]
         l_club = file.split('/')[0]
-        if l_filename == p_row:
+        if p_row in l_filename:
             full_file_list[l_club] = file
 
     for file in p_m_files:
         l_filename = file.split('/')[-1]
-        if l_filename == p_row:
+        if p_row in l_filename:
             full_file_list['master'] = file
 
     return full_file_list
@@ -648,7 +651,7 @@ def mcf_create_full_file_list(p_club_files, p_m_files, p_row):
 # --------------------------------------------------------------------
 
 
-def mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, p_row):
+def mcf_create_full_file_list_type2(p_club_files, p_m_files, p_mc_files, p_row):
     """
     Create an dict of files for this file type, one per club
         f['racq'] = 'full path to file'
@@ -659,18 +662,51 @@ def mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, p_row):
 
     l_test_name = p_row + '.xlsx'
 
+    #    for p in p_club_files:
+    #        if p_row in p:
+    #            alib.p_i('    verify - {}'.format(p))
+
+    found_club = False
     for file in p_club_files:
         l_filename = file.split('/')[-1]
         l_club = file.split('/')[0]
-        if l_test_name == l_filename:
-            full_file_list[l_club] = file
+        if p_row in l_filename:
 
+            # special case for 'incident management' and 'special situation', name includes to many files
+            if p_row == 'incident management':
+                if('comment category' in l_filename or
+                   'supplier types' in l_filename or
+                   'vehicle colour' in l_filename):
+                    continue
+
+            if p_row == 'special situation':
+                if 'special situation type' in l_filename:
+                    continue
+
+            full_file_list[l_club] = file
+            found_club = True
+
+    if not found_club:
+        x = 1
+
+    found_master = False
 
     for file in p_m_files:
         l_filename = file.split('/')[-1]
         if l_test_name == l_filename:
             full_file_list['master'] = file
+            found_master = True
             break
+
+    if not found_master:
+        l_club_test_name = p_row + ' - racq.xlsx'
+        l_club_test_name2 = p_row + '_racq.xlsx'
+        for file in p_m_files:
+            l_filename = file.split('/')[-1]
+            if l_club_test_name == l_filename or l_club_test_name2 == l_filename:
+                full_file_list['master'] = file
+                found_master = True
+                break
 
     return full_file_list
 
@@ -682,7 +718,11 @@ def mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, p_row):
 # --------------------------------------------------------------------
 
 
-def merge_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
+def merge_club_files(p_all_files,  p_work_dir):
+
+    l_club_files = p_all_files['c'] + p_all_files['cc']
+    l_m_files = p_all_files['m']
+    l_mc_files = p_all_files['mc']
 
     # Create lists of files with club name in it, eg 'esp alerts - aant.xlsx'
     # list of files with club name removed
@@ -694,7 +734,7 @@ def merge_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
     # there is one message groups.xlsx file per club.
     dup_file = []
 
-    for row in p_club_files:
+    for row in l_club_files:
         if club_specific_file(row):
             l_file = row.split('/')[-1]
             proc_files.append(l_file)
@@ -708,17 +748,25 @@ def merge_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
     file_list = [i.split(' -')[0] for i in file_list]
     file_list = [i.split('_')[0] for i in file_list]
 
+    dup_file = [i.split('.')[0] for i in dup_file]
+
     uniq_file_list = list(set(file_list))
+    uniq_file_list.sort()
 
-    dup_files_list = [x for x in dup_file if dup_file.count(x) > 1]
+    # only look at the file if there is more than the master and the club file.
+    dup_files_list = [x for x in dup_file if dup_file.count(x) > 3]
     dup_files_list = list(set(dup_files_list))
+    dup_files_list.sort()
 
+
+#    uniq_file_list = ['special situation']
+#    dup_files_list = []
     for row in uniq_file_list:
-        full_file_list = mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, row)
+        full_file_list = mcf_create_full_file_list_type2(l_club_files, l_m_files, l_mc_files, row)
         analyse_shallow(full_file_list, p_work_dir, row)
 
     for row in dup_files_list:
-        full_file_list = mcf_create_full_file_list(p_club_files, p_m_files, row)
+        full_file_list = mcf_create_full_file_list(l_club_files, l_m_files, row)
         analyse_shallow(full_file_list, p_work_dir, row)
 
 
@@ -1060,13 +1108,19 @@ def main():
     cleanup_filenames(m_files, 'master')
     cleanup_filenames(mc_files, 'master club')
 
+    all_files = {}
+    all_files['c'] = club_files
+    all_files['cc'] = club_common_files
+    all_files['m'] = m_files
+    all_files['mc'] = mc_files
+
     club_files += club_common_files
 
 #    validate_master_files(m_files, club_files)
 #    validate_master_common_files(mc_files, club_files)
 #
 #    validate_club_files(club_files, m_files, mc_files, work_dir)
-    merge_club_files(club_files, m_files, mc_files, work_dir)
+    merge_club_files(all_files, work_dir)
 
     alib.p_i('Done...')
 

@@ -34,6 +34,7 @@ import acc_lib as alib
 
 CLUB_LIST = ['aant', 'raa',  'racq', 'ract', 'rac']
 
+
 # --- analyse
 # --------------------------------------------------------------------
 #
@@ -43,6 +44,70 @@ CLUB_LIST = ['aant', 'raa',  'racq', 'ract', 'rac']
 
 
 def a_display_all_rowcounts(p_all_ss, p_all_tabs, p_row):
+    """
+    loop through all spreadsheets, get count of rows per tab.
+
+    This code is a bit hairy....
+    start with a dict of spreadsheets, 1 per club.
+       within each of them is a dict of TABS
+           within each TAB is the rows/columns of the actual spreadsheets
+
+    So, loop through each club (l_club)
+        loop through each tab
+            count rows, add result to print dict for this club
+
+    print headings
+    loop through print dict (one per club)
+        print result.
+
+    """
+    alib.p_i('{}Matrix report for "{}"'.format(10*' ', p_row), p_before=1, p_after=1)
+    PRINT_CLUB_LIST = ['raa', 'ract', 'aant', 'rac', 'racq', 'master']
+
+    exclude_tabs = ['Database Schema', 'Version History', 'Version Control']
+
+    result = {}
+    for tab in p_all_tabs:
+        pr_result = ''
+        if tab in exclude_tabs:
+            continue
+
+        for l_club in PRINT_CLUB_LIST:
+
+            if l_club in p_all_ss:
+                l_ss = p_all_ss[l_club]
+            else:
+                l_ss = []
+
+
+            # see if this tab is in this spreadsheet
+            if tab in l_ss:
+                tab_data = l_ss[tab]
+                rowcount = len(tab_data.index)
+            else:
+                rowcount = ''                     # tab does not exists, set to -1
+            pr_result += '{vR:15} '.format(vR=rowcount)
+
+        # end for
+        result[tab] = pr_result
+
+    l_heading = '{:31}'.format('Tab')
+    l_heading2 = '{} '.format(30 * '-')
+
+    for l_club in PRINT_CLUB_LIST:
+        l_heading += '{vR:>15} '.format(vR=l_club)
+        l_heading2 += '{vR:>15} '.format(vR=15 * '-')
+
+    alib.p_i(l_heading)
+    alib.p_i(l_heading2)
+
+    for key, value in result.items():
+        alib.p_i('{vK:30} {vR}'.format(vK=key[:30], vR=value))
+
+    return True
+
+
+def a_display_all_rowcounts_across(p_all_ss, p_all_tabs, p_row):
     """
     loop through all spreadsheets, get count of rows per tab.
 
@@ -98,8 +163,6 @@ def a_display_all_rowcounts(p_all_ss, p_all_tabs, p_row):
         alib.p_i('{vK:30} {vR}'.format(vK=key, vR=value))
 
     return True
-
-
 
 
 # --------------------------------------------------------------------
@@ -162,7 +225,7 @@ def a_load_ss(p_full_file_list, p_work_dir):
 # --------------------------------------------------------------------
 
 
-def a_all_clubs_exist(p_full_file_list):
+def a_all_clubs_exist(p_full_file_list, p_row):
     """
     validate this list has all clubs and master in it
     """
@@ -170,20 +233,18 @@ def a_all_clubs_exist(p_full_file_list):
     all_files_found = True
     file_name = None
 
+    err_txt = 'Processing "{}", Not all Clubs/Master found for this file'.format(p_row)
+
+
     for l_club in CLUB_LIST:
         if l_club not in p_full_file_list:
-            all_files_found = False
-            file_name = l_club
+            alib.p_e(err_txt, p_before=1)
+            alib.p_e('    Missing club [{}] from file list'.format(l_club))
+
 
     if 'master' not in p_full_file_list:
-        all_files_found = False
-        file_name = 'master'
-
-    if not all_files_found:
-        alib.p_e('Expected to file a club file for each club', p_before=1)
-        alib.p_e('Missing club [{}] from file list'.format(file_name))
-        for key, value in p_full_file_list.items():
-            alib.p_i('    found club: {}, file {}'.format(key, value))
+        alib.p_e(err_txt, p_before=1)
+        alib.p_e('    Missing club [{}] from file list'.format('master'))
 
     return all_files_found
 
@@ -199,8 +260,7 @@ def analyse_shallow(p_full_file_list, p_work_dir, p_row):
     Perform some quick and dirty analsys on the files
     """
 
-    if not a_all_clubs_exist(p_full_file_list):
-        alib.p_e('Not all clubs found for this file')
+    a_all_clubs_exist(p_full_file_list, p_row)
 
     all_ss = a_load_ss(p_full_file_list, p_work_dir)
     if all_ss is None:
@@ -588,7 +648,7 @@ def mcf_create_full_file_list(p_club_files, p_m_files, p_row):
 # --------------------------------------------------------------------
 
 
-def mcf_create_full_file_list2(p_club_files, p_m_files, p_row):
+def mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, p_row):
     """
     Create an dict of files for this file type, one per club
         f['racq'] = 'full path to file'
@@ -597,16 +657,20 @@ def mcf_create_full_file_list2(p_club_files, p_m_files, p_row):
     """
     full_file_list = {}
 
+    l_test_name = p_row + '.xlsx'
+
     for file in p_club_files:
         l_filename = file.split('/')[-1]
         l_club = file.split('/')[0]
-        if p_row in l_filename:
+        if l_test_name == l_filename:
             full_file_list[l_club] = file
+
 
     for file in p_m_files:
         l_filename = file.split('/')[-1]
-        if l_filename == p_row:
+        if l_test_name == l_filename:
             full_file_list['master'] = file
+            break
 
     return full_file_list
 
@@ -618,7 +682,7 @@ def mcf_create_full_file_list2(p_club_files, p_m_files, p_row):
 # --------------------------------------------------------------------
 
 
-def merge_club_files(p_club_files, p_m_files, p_work_dir):
+def merge_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
 
     # Create lists of files with club name in it, eg 'esp alerts - aant.xlsx'
     # list of files with club name removed
@@ -650,7 +714,7 @@ def merge_club_files(p_club_files, p_m_files, p_work_dir):
     dup_files_list = list(set(dup_files_list))
 
     for row in uniq_file_list:
-        full_file_list = mcf_create_full_file_list2(p_club_files, p_m_files, row)
+        full_file_list = mcf_create_full_file_list2(p_club_files, p_m_files, p_mc_files, row)
         analyse_shallow(full_file_list, p_work_dir, row)
 
     for row in dup_files_list:
@@ -1002,7 +1066,7 @@ def main():
 #    validate_master_common_files(mc_files, club_files)
 #
 #    validate_club_files(club_files, m_files, mc_files, work_dir)
-    merge_club_files(club_files, m_files, work_dir)
+    merge_club_files(club_files, m_files, mc_files, work_dir)
 
     alib.p_i('Done...')
 

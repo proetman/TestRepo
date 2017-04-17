@@ -712,9 +712,9 @@ def main():
 
     club_files += club_common_files
 
-#    validate_master_files(m_files, club_files)
-#    validate_master_common_files(mc_files, club_files)
-#
+    validate_master_files(m_files, club_files)
+    validate_master_common_files(mc_files, club_files)
+
     validate_club_files(club_files, m_files, mc_files)
     merge_club_files(club_files)
 

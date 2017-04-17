@@ -108,6 +108,13 @@ def db_connect_mssql(p_con):
     connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
     connect_template += 'Database={vDB};Trusted_Connection=yes;'
 
+    connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
+    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+
+    connect_template = r'Driver={{SQL Server}};Server={vHost}\{vI};'
+    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+
+
     connect_str = connect_template.format(vHost=l_host,
                                           vI=l_instance,
                                           vDB=l_db)

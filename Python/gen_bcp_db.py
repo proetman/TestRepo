@@ -43,15 +43,15 @@ def fetch_tab_col(p_db_conn):
     """ fetch all tables and columns """
 
     sql = """
-        SELECT  UPPER(c.table_schema)          AS table_schema,
-                UPPER(c.table_name)            AS table_name,
-                UPPER(c.column_name)           AS column_name,
-                c.data_type,
-                c.ORDINAL_POSITION,
+        SELECT  UPPER(c.table_schema)          AS "schema",
+                UPPER(c.table_name)            AS "table",
+                UPPER(c.column_name)           AS "column",
+                c.data_type                    as "data_type",
+                c.ORDINAL_POSITION             as "col_id",
                 case
                     when pk.COLUMN_NAME = c.column_name THEN 'Y'
                     ELSE 'N'
-                END                            as "primarykey",
+                END                            as "pk",
                 case is_nullable
                     when 'NO'     then 'Y'
                     else               'N'
@@ -66,6 +66,8 @@ def fetch_tab_col(p_db_conn):
                         """
 
     dd_df = alib.read_table_data(p_db_conn, sql)
+
+    return dd_df
 
 # --------------------------------------------------------------------
 #
@@ -320,13 +322,22 @@ def main():
         return alib.FAIL_GENERIC
 
     con = {}
-    con['host'] = args['source_host']
-    con['instance'] = args['source_instance']
-    con['db'] = args['source_db']
-    con['schema'] = args['source_schema']
+    if args['source_host'] == 'localhost':
+
+        con['host'] = 'localhost'
+        con['instance'] = 'SQLEXPRESS'
+        con['db'] = 'AdventureWorks2012'
+        con['schema'] =  'dbo'
+
+    else:
+        con['host'] = args['source_host']
+        con['instance'] = args['source_instance']
+        con['db'] = args['source_db']
+        con['schema'] = args['source_schema']
 
     db_conn = alib.db_connect_mssql(con)
 
+    tab_col_df = fetch_tab_col(db_conn)
 
 
     extract_template_s = template_load_extract(args['templates'])
@@ -336,19 +347,19 @@ def main():
         alib.p_e('Unable to create or open directory for bcp extract files: [{}]'.format(l_extract_dir))
         return alib.FAIL_GENERIC
 
-    csv_df = open_csv(args['csv'])
-    if csv_df is None:
-        alib.p_e('No CSV data found, aborting')
-        return alib.FAIL_GENERIC
+#    csv_df = open_csv(args['csv'])
+#    if csv_df is None:
+#        alib.p_e('No CSV data found, aborting')
+#        return alib.FAIL_GENERIC
 
-    tab_a = create_unique_tab_list(csv_df)
+    tab_a = create_unique_tab_list(tab_col_df)
     tab_a.sort()
 
 
 
     for tab in tab_a:
         alib.p_i('Generate bcp program for {}'.format(tab))
-        cols_df = fetch_columns(csv_df, tab)
+        cols_df = fetch_columns(tab_col_df, tab)
         bcp_extract = bcp_create_extract(extract_template_s, tab, cols_df, con)
         if not bcp_extract_write(l_extract_dir, tab, bcp_extract):
             alib.p_e('Unable to create output file, aborting')

@@ -32,32 +32,10 @@ import acc_lib as alib
 #
 # --------------------------------------------------------------------
 
-CLUB_LIST = ['aant', 'raa',  'racq', 'ract', 'rac']
-# -- these files will end in ' - club.xlsx' or '_club.xlsx'
-CLUB_TAGS = ['cti numbers & scripts',
-             'esp alerts',
-             'esp response',
-             'external service supplier',
-             'incident management',
-             'special situation',
-             'stock movement management (surefire)',
-             'mr risk assessment',
-             'mr risk mitigation']
+CLUB_LIST = alib.CLUB_LIST
+CLUB_TAGS = alib.CLUB_TAGS
+OTHER_TAGS = alib.OTHER_TAGS
 
-# -- these files will end in 'TAG.xlsx'
-OTHER_TAGS = ['crib locations',
-              'eta table',
-              'message groups',
-              'personnel node access',
-              'personnel',
-              'skills',
-              'term app access - call, disp, caddbm',
-              'term app access - inetveiwer',
-              'term',
-              'unit agency restriction',
-              'units',
-              'vehicle equipment',
-              'vehicles']
 
 # --- analyse shallow (old)
 # --------------------------------------------------------------------
@@ -233,7 +211,7 @@ def a_load_ss(p_full_file_list, p_work_dir):
             l_dir = p_work_dir['l_c_dir']
 
         l_file_name = l_dir + '/' + value
-        ss_dict = open_ss(l_file_name)
+        ss_dict = alib.open_ss(l_file_name)
         if ss_dict is not None:
             l_ss_dict[key] = ss_dict
         else:
@@ -780,48 +758,6 @@ def cleanup_ss(p_dict):
 
 # --------------------------------------------------------------------
 #
-#                          initialise
-#
-# --------------------------------------------------------------------
-
-
-def open_ss(p_ss):
-    """ open spreadhseet, save as df """
-    alib.log_debug('Open spreadsheet {}'.format(p_ss))
-
-    if p_ss is None:
-        return None
-
-    l_ss = p_ss.replace('\\', '/')
-
-    try:
-        ss_df_dict = pd.read_excel(l_ss,
-                                   sheetname=None,
-                                   index_col=None)
-
-    except FileNotFoundError as err:
-        alib.p_e('Function open_ss, spreadsheet not found.')
-        alib.p_e('       speadsheet: [{}]'.format(alib.format_filename(p_ss)))
-        alib.p_e('\n       error text [{}]'.format(err))
-        ss_df_dict = None
-
-    except Exception as err:
-        alib.p_e('\nGeneric exception in function open_ss.')
-        alib.p_e('       spreadsheet: [{}]'.format(alib.format_filename(p_ss)))
-        alib.p_e('\n       error text [{}]'.format(err))
-        ss_df_dict = None
-
-    if ss_df_dict is not None:
-        for tab in ss_df_dict:
-            l_df = ss_df_dict[tab]
-            if len(l_df.columns) > 0:
-                l_df.columns = l_df.columns.str.upper()
-
-    return ss_df_dict
-
-
-# --------------------------------------------------------------------
-#
 #                          validate tabs
 #
 # --------------------------------------------------------------------
@@ -844,7 +780,7 @@ def mcf_validate_tabs(p_list, p_clubs, p_work_dir):
 
     for file_name in p_list:
         l_file_name = p_work_dir['l_c_dir'] + '/' + file_name
-        ss_dict = open_ss(l_file_name)
+        ss_dict = alib.open_ss(l_file_name)
         l_ss_keys = ss_dict.keys()
         l_new_keys = replace_club(l_ss_keys, p_clubs)
         l_new_keys.sort()
@@ -984,7 +920,7 @@ def merge_club_files(p_all_files,  p_work_dir):
     dup_file = []
 
     for row in l_club_files:
-        if club_specific_file(row):
+        if alib.club_specific_file(row):
             l_file = row.split('/')[-1]
             proc_files.append(l_file)
             full_files.append(row)
@@ -1101,13 +1037,13 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
         if l_m_file_name is not None:
             l_m_file_name = l_m_file_name.replace('/incident management/', '/incident management (inc nap)/')
 
-        ss_df = open_ss(l_file_name)
+        ss_df = alib.open_ss(l_file_name)
         if ss_df is None:
             alib.p_e('    Unable to open club spreadsheet, please review previous errors raised')
             totres['filemiss'] += 1
             continue
 
-        m_df = open_ss(l_m_file_name)
+        m_df = alib.open_ss(l_m_file_name)
         if m_df is None:
             alib.p_e('    Unable to open master spreadsheet, please review previous errors raised')
             totres['filemiss'] += 1
@@ -1142,27 +1078,6 @@ def validate_club_files(p_club_files, p_m_files, p_mc_files, p_work_dir):
 
 # --------------------------------------------------------------------
 #
-#                          club specific filename
-#
-# --------------------------------------------------------------------
-
-
-def club_specific_file(p_filename):
-    """ look for [club].xlsx on end of filename """
-    retval = None
-    for l_club in CLUB_LIST:
-        l_club_test = '{}.xlsx'.format(l_club)
-        l_len = len(l_club_test)
-        l_file_test = p_filename[-l_len:]
-        if l_file_test == l_club_test:
-            retval = l_club
-            break
-
-    return retval
-
-
-# --------------------------------------------------------------------
-#
 #                          validate master
 #
 # --------------------------------------------------------------------
@@ -1179,7 +1094,7 @@ def validate_master_files(p_files, p_club_files):
     l_fail_message = "Validate Master file: {vF:70} FAIL"
 
     for row in p_files:
-        l_club = club_specific_file(row)
+        l_club = alib.club_specific_file(row)
 
         # loop through all clubs, validate exists.
         if l_club is None:
@@ -1229,372 +1144,6 @@ def validate_master_common_files(p_files, p_club_files):
             alib.p_e('    No CLUB file found for this file')
         else:
             alib.p_i(l_success_message.format(vF=target_row))
-
-# --- Reports
-# --------------------------------------------------------------------
-#
-#                          dump short names to file
-#
-# --------------------------------------------------------------------
-
-
-def print_filenames(p_work_files):
-    """ Print all the short names of the club files """
-
-    alib.p_i('')
-    alib.p_i('{:30} {:40} {:10}'.format('Tag', 'File', 'Club'))
-    alib.p_i('{:30} {:40} {:10}'.format(30 * '-', 40 * '-', 10 * '-'))
-    for key, value in p_work_files.items():
-        curr_file = value['club_file_short'].split('/')[-1]
-        curr_club = value['club']
-
-        if curr_club is None:
-            l_club = ''
-        else:
-            l_club = curr_club
-
-        if value['tag'] is None:
-            l_tag = ''
-        else:
-            l_tag = value['tag']
-        alib.log_info('{:30} {:40} {:10}'.format(l_tag, curr_file, l_club))
-    alib.p_i('')
-
-# --- file operations
-
-# --------------------------------------------------------------------
-#
-#                          load tags
-#
-# --------------------------------------------------------------------
-
-
-def load_tags(p_work_dict):
-    """  Tag files that are 1 per club """
-
-    for key, value in p_work_dict.items():
-
-        l_dir = value['club_file_short'].split('/')[0]
-        if l_dir in CLUB_LIST:
-            value['club'] = l_dir
-
-        l_c_short_name = value['club_file_short']
-        for l_tag in OTHER_TAGS:
-            l_tag_str = '/' + l_tag + '.xlsx'
-            len_tag = len(l_tag_str)
-            test_str = l_c_short_name[-len_tag:]
-
-            if l_tag_str == test_str:
-                value['tag'] = l_tag
-                continue
-
-    print('NOW PROCESS CLUB TAGS')
-    for key, value in p_work_dict.items():
-        #        curr_file = value['club_file_short'].split('/')[-1]
-        #        if curr_file == 'external service supplier_aant.xlsx':
-        #            x = 1
-        if value['tag'] is not None:
-            continue
-
-        l_c_short_name = value['club_file_short']
-        if not club_specific_file(l_c_short_name):
-            continue
-
-        for l_tag in CLUB_TAGS:
-            l_tag_str = '/' + l_tag + ' - '
-            if l_tag_str in l_c_short_name:
-                value['tag'] = l_tag
-                continue
-
-            l_tag_str = '/' + l_tag + '_'
-            if l_tag_str in l_c_short_name:
-                value['tag'] = l_tag
-                continue
-
-
-# --------------------------------------------------------------------
-#
-#                          lower case list
-#
-# --------------------------------------------------------------------
-
-def load_lower_case(p_list):
-    """convert list to all lower case """
-    l_list = p_list
-    p_list[:] = [x.lower() for x in l_list]
-
-    return
-
-# --------------------------------------------------------------------
-#
-#                          cleanup
-#
-# --------------------------------------------------------------------
-
-
-def load_cleanup_filename(p_list, p_type):
-    """ get all files """
-
-    if p_type == 'club':
-        remove_str = 'data templates by club/'
-    elif p_type == 'club_common':
-        remove_str = 'common data templates/'
-    elif p_type == 'master':
-        remove_str = 'cd4/'
-    else:
-        remove_str = 'master validated common data templates (controlled)/'
-
-    l_list = p_list
-    p_list[:] = [x.split(remove_str)[1] for x in l_list]
-
-    return
-
-# --------------------------------------------------------------------
-#
-#                          load master file
-#
-# --------------------------------------------------------------------
-
-
-def load_master_file(p_value, p_work_files):
-    """ find the correct master file for this club file """
-
-    l_m_files = p_work_files['m']
-    l_mc_files = p_work_files['mc']
-
-    l_c_short_name = p_value['club_file_short']
-    l_c_type = p_value['type']
-
-    if l_c_type == 'club':
-        l_file_list = l_m_files
-    else:
-        l_file_list = l_mc_files
-
-    for file in l_file_list:
-        # only do this for club files, not common.
-        l_file = file
-        if l_c_type == 'club':
-            l_file = l_file.replace('/incident management (inc nap)/', '/incident management/')
-
-        len_c = len(l_c_short_name)
-        len_c -= 1
-        part_master_file = l_file[-len_c:]
-
-        # remove leading CD4,
-        part_master_file = '/'.join(part_master_file.split('/')[1:])
-
-        if len(part_master_file) == 0:
-            continue
-
-        # remove leading club name from filename (the first aant) aant/dispatch/esp alerts - aant.xlsx
-        part_club_file = '/'.join(l_c_short_name.split('/')[1:])
-
-        no_club_name = ''
-        if club_specific_file(part_club_file):
-            for c in CLUB_LIST:
-                curr_c = ' - {}.xlsx'.format(c.lower())
-                no_club_name = part_club_file.replace(curr_c, '.xlsx')
-
-        if part_club_file == part_master_file or no_club_name == part_master_file:
-            return(file)
-
-    return None
-
-
-# --------------------------------------------------------------------
-#
-#                          match c files to m files
-#
-# --------------------------------------------------------------------
-
-
-def load_matching_masterfile(p_work_files):
-    """
-    Initialise the directories where the files live
-    file structure
-        club file short name (dict index)
-        club file name (actual name, including full path????)
-        master file short name
-        master file actual name (including full path)
-    """
-
-    l_c_files = p_work_files['c'].copy()
-    l_cc_files = p_work_files['cc'].copy()
-
-    load_cleanup_filename(l_c_files, 'club')
-    load_cleanup_filename(l_cc_files, 'club_common')
-
-    work_dict = {}
-
-    counter = 0
-    for file in l_c_files:
-
-        file_dict = {}
-        file_dict['club_file_short'] = file
-        file_dict['club_file_full'] = p_work_files['c'][counter]
-        file_dict['type'] = 'club'
-        file_dict['tag'] = None
-        file_dict['club'] = None
-        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
-
-        work_dict[file] = (file_dict)
-        counter += 1
-
-    counter = 0
-    for file in l_cc_files:
-
-        file_dict = {}
-        file_dict['club_file_short'] = file
-        file_dict['club_file_full'] = p_work_files['cc'][counter]
-        file_dict['type'] = 'club common'
-        file_dict['tag'] = None
-        file_dict['club'] = None
-        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
-
-        work_dict[file] = (file_dict)
-        counter += 1
-
-    for key, value in work_dict.items():
-
-        l_m_file = load_master_file(value, p_work_files)
-        if l_m_file is not None:
-            if value['type'] == 'club':
-                l_short_m_name = l_m_file.split('cd4/')[1]
-            else:
-                l_short_m_name = l_m_file.split('/master validated common data templates (controlled)/')[1]
-        else:
-            l_short_m_name = None
-
-        value['master_file_short'] = l_short_m_name
-        value['master_file_full'] = l_m_file
-        value['master_ss'] = open_ss(l_m_file)
-
-    alib.p_i('')
-    for key, value in work_dict.items():
-        if value['master_file_short'] is None:
-            alib.p_e('club file with no master  [{}]'.format(value['club_file_short']))
-    alib.p_i('')
-
-    return work_dict
-
-
-# --------------------------------------------------------------------
-#
-#                          get filenames
-#
-# --------------------------------------------------------------------
-
-
-def load_os_filenames(p_dir):
-    """ get all files """
-
-    dict_of_files = []
-    for (dirpath, dummy_dirnames, filenames) in os.walk(p_dir):
-        for filename in filenames:
-
-            result = re.match('.*130417.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            result = re.match('.* v1.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            result = re.match('.* 13apr.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            result = re.match('.* 13april2017.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            result = re.match('.* original_issue.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            result = re.match('.* 13apr.xlsx$', filename, flags=re.IGNORECASE)
-            if result:
-                continue
-
-            dict_of_files.append(os.sep.join([dirpath, filename]).replace('\\', '/'))
-
-#            if 'Crib' not in filename:
-#                continue
-#            print(filename)
-#            list_of_files[filename] = os.sep.join([dirpath, filename]).replace('\\', '/')
-
-    return dict_of_files
-
-
-# --------------------------------------------------------------------
-#
-#                          setup files
-#
-# --------------------------------------------------------------------
-
-
-def load_files(p_work_dir):
-    """ load all files into a dict. """
-
-    all_files = {}
-    all_files['c'] = load_os_filenames(p_work_dir['l_c_dir'])
-    all_files['cc'] = load_os_filenames(p_work_dir['l_cc_dir'])
-    all_files['m'] = load_os_filenames(p_work_dir['l_m_dir'])
-    all_files['mc'] = load_os_filenames(p_work_dir['l_mc_dir'])
-
-    load_lower_case(all_files['c'])
-    load_lower_case(all_files['cc'])
-    load_lower_case(all_files['m'])
-    load_lower_case(all_files['mc'])
-
-    return all_files
-
-# --------------------------------------------------------------------
-#
-#                          setup dir
-#
-# --------------------------------------------------------------------
-
-
-def load_dir(p_args):
-    """ Initialise the directories where the files live """
-
-    #    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
-    #    default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
-    #    default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
-
-    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
-    # -- club files
-    default_club_dir = default_sync_dir + '/Data Templates by Club'
-    default_club_common_dir = default_sync_dir + '/Common Data Templates'
-
-    # -- Master files
-    default_master_dir = default_sync_dir + '/Master Validated Templates by Club (Controlled)/CD4'
-    default_master_common_dir = default_sync_dir + '/Master Validated Common Data Templates (Controlled)'
-
-    work_dir = {}
-
-    if p_args['club_dir'] is None:
-        work_dir['l_c_dir'] = default_club_dir
-    else:
-        work_dir['l_c_dir'] = p_args['club_dir']
-
-    if p_args['club_common_dir'] is None:
-        work_dir['l_cc_dir'] = default_club_common_dir
-    else:
-        work_dir['l_cc_dir'] = p_args['club_common_dir']
-
-    if p_args['m_dir'] is None:
-        work_dir['l_m_dir'] = default_master_dir
-    else:
-        work_dir['l_m_dir'] = p_args['m_dir']
-
-    if p_args['mc_dir'] is None:
-        work_dir['l_mc_dir'] = default_master_common_dir
-    else:
-        work_dir['l_mc_dir'] = p_args['mc_dir']
-
-    return work_dir
 
 # --- Program Init
 # --------------------------------------------------------------------
@@ -1678,19 +1227,20 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    priority_list_dict = open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
+    # priority_list_dict = alib.open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
+    priority_list_dict = alib.open_ss('C:/work/racq/ACCNational/TestRepo/Doc/priority_files.xlsx')
     priority_list_df = priority_list_dict['Sheet1']
     priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']
     priority_list_df['NAME'] = priority_list_df['NAME'].str.lower()
 
-    work_dir = load_dir(args)
-    work_files = load_files(work_dir)
+    work_dir = alib.load_dir(args)
+    work_files = alib.load_files(work_dir)
 
-    work_dict = load_matching_masterfile(work_files)
+    work_dict = alib.load_matching_masterfile(work_files)
 
-    load_tags(work_dict)
+    alib.load_tags(work_dict)
 
-    print_filenames(work_dict)
+    alib.print_filenames(work_dict)
 
     analyse_shallow(work_dict, priority_list_df)
 

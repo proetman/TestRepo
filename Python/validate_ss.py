@@ -761,16 +761,16 @@ def merge_club_files(p_all_files,  p_work_dir):
 
 #    uniq_file_list = ['special situation']
 #    dup_files_list = []
-    for row in uniq_file_list:
-        full_file_list = mcf_create_full_file_list_type2(l_club_files, l_m_files, l_mc_files, row)
-        analyse_shallow(full_file_list, p_work_dir, row)
+#    for row in uniq_file_list:
+#        full_file_list = mcf_create_full_file_list_type2(l_club_files, l_m_files, l_mc_files, row)
+#        analyse_shallow(full_file_list, p_work_dir, row)
 
-    for row in dup_files_list:
-        full_file_list = mcf_create_full_file_list(l_club_files, l_m_files, row)
-        analyse_shallow(full_file_list, p_work_dir, row)
+#    for row in dup_files_list:
+#        full_file_list = mcf_create_full_file_list(l_club_files, l_m_files, row)
+#        analyse_shallow(full_file_list, p_work_dir, row)
 
 
-    return
+#    return
     # at this point, have a list of all multi file groups  that have club name embeded (unique_file_list)
     # and another list that have no club name embeded (dup_files_list)
 
@@ -1116,10 +1116,10 @@ def main():
 
     club_files += club_common_files
 
-#    validate_master_files(m_files, club_files)
-#    validate_master_common_files(mc_files, club_files)
-#
-#    validate_club_files(club_files, m_files, mc_files, work_dir)
+    validate_master_files(m_files, club_files)
+    validate_master_common_files(mc_files, club_files)
+
+    validate_club_files(club_files, m_files, mc_files, work_dir)
     merge_club_files(all_files, work_dir)
 
     alib.p_i('Done...')

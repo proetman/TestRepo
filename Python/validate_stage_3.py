@@ -295,6 +295,70 @@ def analyse_shallow_old(p_full_file_list, p_work_dir, p_row):
 
 # --- analyse shallow (new)
 
+
+def as_find_priority(p_priority_df, p_str):
+    """ determine the priority based on file name or tag """
+
+    row_ind = p_priority_df['NAME'] == p_str
+    row = p_priority_df[row_ind]
+
+    if len(row.index) == 1:
+
+        exec_order = row['EXEC_ORDER'].values[0]
+        hex_etl = row['HEX ETL'].values[0]
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif len(row.index) > 1:
+        ret_title = ' MULTIPLE MATCHING DATA for name {}'.format(p_str)
+
+    elif p_str == 'external service supplier':
+        exec_order = '28-43'
+        hex_etl = 'HEX'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif p_str == 'incident management':
+        exec_order = '16-27'
+        hex_etl = 'HEX'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif p_str == 'stock movement management (surefire)':
+        exec_order = '2-68'
+        hex_etl = 'HEX'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif p_str == 'incident management - nap':
+        exec_order = '16-27'
+        hex_etl = 'HEX'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif p_str == 'out of service type agency':
+        exec_order = '9'
+        hex_etl = 'ETL'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    elif p_str == 'special situation type - field config':
+        exec_order = '44'
+        hex_etl = 'HEX'
+        ret_title = ' execution order {}, verification {}'.format(exec_order, hex_etl)
+
+    else:
+        ret_title = ' NO MATCHING DATA for name {}'.format(p_str)
+
+    return ret_title
+
+# --------------------------------------------------------------------
+#
+#                          fetch all row counts
+#
+# --------------------------------------------------------------------
+
+
+def as_pr(fptr, str):
+    """ print to log file and to report file """
+
+    alib.p_i(str)
+    fptr.write(str + '\n')
+    return
 # --------------------------------------------------------------------
 #
 #                          fetch all row counts
@@ -321,41 +385,48 @@ def as_generate_report(p_tag, fptr, p_rep_list, p_priority_df):
 
     """
     all_tabs = as_get_all_tabs(p_rep_list)
-    exec_order = -1
 
     if p_tag == 'common':
 
         PRINT_CLUB_LIST = ['common', 'master']
         value = p_rep_list['common']
         ss_name = value['club_file_short'].split('/')[-1]
-        alib.p_i('{}Matrix report for "{}"'.format(10*' ', ss_name), p_before=1, p_after=1)
-        fptr.write('\n{}Matrix report for "{}"\n\n'.format(10*' ', ss_name))
+        pr_title = '{}Matrix report for "{}"'.format(10*' ', ss_name)
 
         short_name = ss_name.split('.')[0]
-
-        row_ind = p_priority_df['NAME'] == short_name
-        row = p_priority_df[row_ind]
-        if len(row.index) == 1:
-            exec_order = row['EXEC_ORDER'].values[0]
-            hex_etl = row['HEX ETL'].values[0]
-            fptr.write('exec order {}, load method {}\n'.format(exec_order, hex_etl))
-        elif len(row.index) > 1:
-            print('More than one found for {}'.format(short_name))
+        priority_title = as_find_priority(p_priority_df, short_name)
+#        row_ind = p_priority_df['NAME'] == short_name
+#        row = p_priority_df[row_ind]
+#        if len(row.index) == 1:
+#            exec_order = row['EXEC_ORDER'].values[0]
+#            hex_etl = row['HEX ETL'].values[0]
+#            pr_title += ' execution order {}, verification {}'.format(exec_order, hex_etl)
+#        elif len(row.index) > 1:
+#            pr_title += ' MULTIPLE MATCHING DATA for name {}'.format(short_name)
+#        else:
+#            pr_title += ' NO MATCHING DATA for name {}'.format(short_name)
+        pr_title += priority_title
+        as_pr(fptr, '')
+        as_pr(fptr, pr_title)
 
     else:
 
         PRINT_CLUB_LIST = ['raa', 'ract', 'aant', 'rac', 'racq', 'master']
-        alib.p_i('{}Matrix report for "{}"'.format(10*' ', p_tag), p_before=1, p_after=1)
-        fptr.write('\n{}Matrix report for "{}"\n\n'.format(10*' ', p_tag))
-
-        row_ind = p_priority_df['NAME'] == p_tag
-        row = p_priority_df[row_ind]
-        if len(row.index) == 1:
-            exec_order = row['EXEC_ORDER'].values[0]
-            hex_etl = row['HEX ETL'].values[0]
-            fptr.write('exec order {}, load method {}\n'.format(exec_order, hex_etl))
-        elif len(row.index) > 1:
-            print('More than one found for {}'.format(p_tag))
+        pr_title = '{}Matrix report for "{}"'.format(10*' ', p_tag)
+        priority_title = as_find_priority(p_priority_df, p_tag)
+#        row_ind = p_priority_df['NAME'] == p_tag
+#        row = p_priority_df[row_ind]
+#        if len(row.index) == 1:
+#            exec_order = row['EXEC_ORDER'].values[0]
+#            hex_etl = row['HEX ETL'].values[0]
+#            pr_title += ' execution order {}, verification {}'.format(exec_order, hex_etl)
+#        elif len(row.index) > 1:
+#            pr_title += ' MULTIPLE MATCHING DATA for tag {}'.format(p_tag)
+#        else:
+#            pr_title += ' NO MATCHING DATA for tag {}'.format(p_tag)
+        pr_title += priority_title
+        as_pr(fptr, '')
+        as_pr(fptr, pr_title)
 
     exclude_tabs = ['Database Schema', 'Version History', 'Version Control']
 
@@ -405,14 +476,19 @@ def as_generate_report(p_tag, fptr, p_rep_list, p_priority_df):
         l_heading += '{vR:>15} '.format(vR=l_club)
         l_heading2 += '{vR:>15} '.format(vR=15 * '-')
 
-    alib.p_i(l_heading)
-    fptr.write(l_heading + '\n')
-    alib.p_i(l_heading2)
-    fptr.write(l_heading2 + '\n')
+    as_pr(fptr, l_heading)
+    as_pr(fptr, l_heading2)
+#    alib.p_i(l_heading)
+#    fptr.write(l_heading + '\n')
+#    alib.p_i(l_heading2)
+#    fptr.write(l_heading2 + '\n')
 
     for key, value in result.items():
-        alib.p_i('{vK:30} {vR}'.format(vK=key[:30], vR=value))
-        fptr.write('{vK:30} {vR}\n'.format(vK=key[:30], vR=value))
+        as_pr(fptr, '{vK:30} {vR}'.format(vK=key[:30], vR=value))
+#        alib.p_i('{vK:30} {vR}'.format(vK=key[:30], vR=value))
+#        fptr.write('{vK:30} {vR}\n'.format(vK=key[:30], vR=value))
+
+    as_display_files(p_rep_list, fptr)
 
     return True
 
@@ -434,6 +510,26 @@ def as_get_all_tabs(p_rep_list):
     tab_list = list(set(tab_list))
 
     return tab_list
+
+# --------------------------------------------------------------------
+#
+#                          as display files
+#
+# --------------------------------------------------------------------
+
+
+def as_display_files(p_rep_list, fptr):
+    """ display the files for this report """
+
+    print_blank = True
+    for key, value in p_rep_list.items():
+        # club_file_short
+        if print_blank:
+            as_pr(fptr, '')
+            print_blank = False
+
+        l_filename = value['club_file_full']
+        as_pr(fptr, '   FILE: "{}"'.format(l_filename))
 
 # --------------------------------------------------------------------
 #
@@ -691,6 +787,7 @@ def cleanup_ss(p_dict):
 
 def open_ss(p_ss):
     """ open spreadhseet, save as df """
+    alib.log_debug('Open spreadsheet {}'.format(p_ss))
 
     if p_ss is None:
         return None
@@ -1411,6 +1508,10 @@ def load_os_filenames(p_dir):
             if result:
                 continue
 
+            result = re.match('.* original_issue.xlsx$', filename, flags=re.IGNORECASE)
+            if result:
+                continue
+
             result = re.match('.* 13apr.xlsx$', filename, flags=re.IGNORECASE)
             if result:
                 continue
@@ -1458,11 +1559,11 @@ def load_files(p_work_dir):
 def load_dir(p_args):
     """ Initialise the directories where the files live """
 
-    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
+    #    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
+    #    default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
+    #    default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
 
-    default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
-    default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
-
+    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
     # -- club files
     default_club_dir = default_sync_dir + '/Data Templates by Club'
     default_club_common_dir = default_sync_dir + '/Common Data Templates'
@@ -1577,7 +1678,7 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    priority_list_dict = open_ss('z:/priority_files.xlsx')
+    priority_list_dict = open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
     priority_list_df = priority_list_dict['Sheet1']
     priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']
     priority_list_df['NAME'] = priority_list_df['NAME'].str.lower()

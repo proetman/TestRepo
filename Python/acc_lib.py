@@ -721,9 +721,10 @@ def load_matching_masterfile(p_work_files):
 # --------------------------------------------------------------------
 
 
-def load_os_filenames(p_dir):
+def load_os_filenames(p_dir, p_limit=None):
     """ get all files """
 
+    counter = 0
     dict_of_files = []
     for (dirpath, dummy_dirnames, filenames) in os.walk(p_dir):
         for filename in filenames:
@@ -754,10 +755,10 @@ def load_os_filenames(p_dir):
 
             dict_of_files.append(os.sep.join([dirpath, filename]).replace('\\', '/'))
 
-#            if 'Crib' not in filename:
-#                continue
-#            print(filename)
-#            list_of_files[filename] = os.sep.join([dirpath, filename]).replace('\\', '/')
+            counter += 1
+            if p_limit is not None:
+                if counter > p_limit:
+                    break
 
     return dict_of_files
 
@@ -769,14 +770,19 @@ def load_os_filenames(p_dir):
 # --------------------------------------------------------------------
 
 
-def load_files(p_work_dir):
+def load_files(p_work_dir, p_quick_debug):
     """ load all files into a dict. """
 
+    if p_quick_debug:
+        limit = 5
+    else:
+        limit = None
+
     all_files = {}
-    all_files['c'] = load_os_filenames(p_work_dir['l_c_dir'])
-    all_files['cc'] = load_os_filenames(p_work_dir['l_cc_dir'])
-    all_files['m'] = load_os_filenames(p_work_dir['l_m_dir'])
-    all_files['mc'] = load_os_filenames(p_work_dir['l_mc_dir'])
+    all_files['c'] = load_os_filenames(p_work_dir['l_c_dir'], p_limit=limit)
+    all_files['cc'] = load_os_filenames(p_work_dir['l_cc_dir'], p_limit=limit)
+    all_files['m'] = load_os_filenames(p_work_dir['l_m_dir'], p_limit=limit)
+    all_files['mc'] = load_os_filenames(p_work_dir['l_mc_dir'], p_limit=limit)
 
     load_lower_case(all_files['c'])
     load_lower_case(all_files['cc'])
@@ -799,8 +805,9 @@ def load_dir(p_args):
     default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
     default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
 
-    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
-    default_sync_dir = 'C:/work/stuff/all_2017_apr_19__1540'
+    if 'all_dir' in p_args:
+        if p_args['all_dir'] is not None:
+            default_sync_dir = p_args['all_dir']
 
     # -- club files
     default_club_dir = default_sync_dir + '/Data Templates by Club'

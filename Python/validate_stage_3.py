@@ -1196,6 +1196,11 @@ def initialise(p_filename):
                         default=None,
                         required=False)
 
+    parser.add_argument('--all_dir',
+                        help='directory containing all of the above',
+                        default=None,
+                        required=False)
+
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -1227,7 +1232,11 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    priority_list_dict = alib.open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
+    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
+    priority_file = home_dir + '/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/'
+    priority_file += 'TestRepo/Doc/priority_files.xlsx'
+    priority_list_dict = alib.open_ss(priority_file)
+
     # pr iority_list_dict = alib.open_ss('C:/work/racq/ACCNational/TestRepo/Doc/priority_files.xlsx')
     priority_list_df = priority_list_dict['Sheet1']
     priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']

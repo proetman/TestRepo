@@ -213,6 +213,43 @@ def compare_dict(p_file, p_ss_dict, p_m_dict, p_totres):
 
     cd_cols(p_ss_dict, p_m_dict)
     cd_rowcount(p_file, p_ss_dict, p_m_dict, p_totres)
+# --- Val Special Char
+# --------------------------------------------------------------------
+#
+#                          validate special char
+#
+# --------------------------------------------------------------------
+
+
+def validate_special_char(p_ss_dict):
+    """ Check there are no "tab" characters in data."""
+
+    # Have a spreadsheet
+    for key, value in p_ss_dict.items():
+        # Now have a single tab from the spreadsheet as a dataframe
+        l_tab_df = value
+        if len(l_tab_df.index) > 1:
+            row_cnt = 0
+            for dummy_j, l_row in l_tab_df.iterrows():
+                row_cnt += 1
+                # Now have a single row
+                col_cnt = 0
+                for col in l_row:
+                    col_cnt += 1
+                    if col is not None and isinstance(col, str):
+                        # print('row {}, column {}'.format(row_cnt, col_cnt))
+                        if '\t' in col:
+                            alib.p_e('TAB Character found row {}, column {}'.format(row_cnt, col_cnt))
+        elif len(l_tab_df.index) == 1:
+            col_cnt = 0
+            for col in l_tab_df:
+                col_cnt += 1
+                if col is not None and isinstance(col, str):
+                    if '\t' in col:
+                        alib.p_e('TAB Character found column {}'.format(col_cnt))
+            # process a series
+        else:
+            continue
 
 # --- Val Multi File
 
@@ -378,10 +415,14 @@ def validate_club_file(p_work_dict):
         vcf_cleanup_ss(ss_df)
         vcf_cleanup_ss(m_df)
 
+        if ss_df is not None:
+            validate_special_char(ss_df)
+
         if ss_df is not None and m_df is not None:
             compare_dict(l_name, ss_df, m_df, totres)
         else:
             totres['filemiss'] += 1
+
 
     perc_txt = '            Overall Percentages: tabs modified {vM:3.2f}% ({vMC}), unchanged {vU:3.2f}%,'
     perc_txt += ' total tab count [{vC}] '
@@ -497,6 +538,17 @@ def initialise(p_filename):
                         default=None,
                         required=False)
 
+    parser.add_argument('--all_dir',
+                        help='directory containing all of the above',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--quick_debug',
+                        help='only load cc and mc files, used for debugging only',
+                        default=None,
+                        action='store_true',
+                        required=False)
+
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -532,11 +584,12 @@ def main():
     default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
     default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
 
-    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
-    default_sync_dir = 'C:/work/stuff/all_2017_apr_19__1540'
+    #    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
+    #    default_sync_dir = 'C:/work/stuff/all_2017_apr_19__1540'
 
     work_dir = alib.load_dir(args)
-    work_files = alib.load_files(work_dir)
+
+    work_files = alib.load_files(work_dir, args['quick_debug'])
 
     work_dict = alib.load_matching_masterfile(work_files)
 

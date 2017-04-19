@@ -32,61 +32,7 @@ import acc_lib as alib
 #
 # --------------------------------------------------------------------
 # --- Sql Stuff
-# --------------------------------------------------------------------
-#
-#                          fetch tab col data
-#
-# --------------------------------------------------------------------
 
-
-def fetch_tab_col(p_db_conn):
-    """ fetch all tables and columns """
-
-    sql = """
-        SELECT  UPPER(c.table_schema)          AS "schema",
-                UPPER(c.table_name)            AS "table",
-                UPPER(c.column_name)           AS "column",
-                c.data_type                    as "data_type",
-                c.ORDINAL_POSITION             as "col_id",
-                case
-                    when pk.COLUMN_NAME = c.column_name THEN 'Y'
-                    ELSE 'N'
-                END                            as "pk",
-                case is_nullable
-                    when 'NO'     then 'Y'
-                    else               'N'
-                end                            as "mandatory"
-         FROM information_schema.columns c
-             LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk
-                 ON  OBJECTPROPERTY (OBJECT_ID (pk.CONSTRAINT_SCHEMA + '.' +
-                                     pk.CONSTRAINT_NAME),'IsPrimaryKey') = 1
-                 AND pk.TABLE_NAME = c.table_name
-                 AND pk.COLUMN_NAME =  c.column_name
-                 AND pk.TABLE_SCHEMA = c.table_schema
-                        """
-
-    dd_df = alib.read_table_data(p_db_conn, sql)
-
-    return dd_df
-
-# --------------------------------------------------------------------
-#
-#                          fetch columns for table
-#
-# --------------------------------------------------------------------
-
-
-def fetch_columns(p_df, p_tab):
-    """ fetch columns for this table """
-
-    alib.log_debug('start fetch columns for table {}'.format(p_tab))
-
-    tab_ind = p_df['TABLE'] == p_tab
-
-    col_df = p_df[tab_ind]
-    new_df = col_df.sort_values(['COL_ID'])
-    new_df.reset_index(drop=True, inplace=True)
-    return new_df
 
 # --------------------------------------------------------------------
 #
@@ -190,6 +136,40 @@ def bcp_create_extract(p_extract_template_s, p_tab, p_cols_df, p_con):
                                          vWorkDir='c:\\tmp')
 
     return p_prog
+
+# --------------------------------------------------------------------
+#
+#                          bcp create extract
+#
+# --------------------------------------------------------------------
+
+
+def bcp_create_import_fmt(p_tab, p_cols_df, p_con):
+    """ convert extract to program """
+    alib.log_debug('start bcm create import fmt')
+
+    l_cols_l = p_cols_df['COLUMN'].tolist()
+    count_cols = len(l_cols_l)
+
+    fmt_txt = "10.0\n10\n"
+
+    line_template = '{vCounter:8}{vType:20}{vZero:8}{vStart:8}{vDelim:8}{vCounter:8}{vCol:58}""\n'
+    counter = 1
+    for col in l_cols_l:
+        if count_cols == counter:
+            l_delim = '"\\r\\n"'
+        else:
+            l_delim = '"|"'
+        line_txt = line_template(vCounter=counter,
+                                 vType="SQLCHAR",
+                                 vZero=0,
+                                 vStart=1,
+                                 vDelim=l_delim,
+                                 vCol=col)
+        fmt_txt += line_txt
+        counter += 1
+
+    return fmt_txt
 
 # --------------------------------------------------------------------
 #
@@ -326,8 +306,8 @@ def main():
 
         con['host'] = 'localhost'
         con['instance'] = 'SQLEXPRESS'
-        con['db'] = 'AdventureWorks2012'
-        con['schema'] =  'dbo'
+        con['schema'] = 'AdventureWorks2012'
+        con['db'] = 'HUMANRESOURCES'
 
     else:
         con['host'] = args['source_host']
@@ -337,7 +317,7 @@ def main():
 
     db_conn = alib.db_connect_mssql(con)
 
-    tab_col_df = fetch_tab_col(db_conn)
+    tab_col_df = alib.fetch_tab_col(db_conn)
 
 
     extract_template_s = template_load_extract(args['templates'])
@@ -359,14 +339,19 @@ def main():
 
     for tab in tab_a:
         alib.p_i('Generate bcp program for {}'.format(tab))
-        cols_df = fetch_columns(tab_col_df, tab)
-        bcp_extract = bcp_create_extract(extract_template_s, tab, cols_df, con)
-        if not bcp_extract_write(l_extract_dir, tab, bcp_extract):
-            alib.p_e('Unable to create output file, aborting')
-            return alib.FAIL_GENERIC
+        cols_df = alib.fetch_columns(tab_col_df, tab)
+#        bcp_extract = bcp_create_extract(extract_template_s, tab, cols_df, con)
+#        if not bcp_extract_write(l_extract_dir, tab, bcp_extract):
+#            alib.p_e('Unable to create output file, aborting')
+#            return alib.FAIL_GENERIC
+
+        bcp_import_fmt = bcp_create_import_fmt(tab, cols_df, con)
+        print(bcp_import_fmt)
 
     alib.p_i('Done...')
 
+    db_conn.close()
+    return alib.SUCCESS
 # --------------------------------------------------------------------
 #
 #                          the end

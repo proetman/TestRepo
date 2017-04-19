@@ -532,6 +532,9 @@ def main():
     default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
     default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
 
+    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
+    default_sync_dir = 'C:/work/stuff/all_2017_apr_19__1540'
+
     work_dir = alib.load_dir(args)
     work_files = alib.load_files(work_dir)
 

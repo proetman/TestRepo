@@ -1221,14 +1221,14 @@ def main():
     all agree with each other
     """
 
-    args, dummy_l_log_filename_s = initialise('validate_ss')
+    args, dummy_l_log_filename_s = initialise('validate_stage_3')
 
     # -- Initialise
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    # priority_list_dict = alib.open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
-    priority_list_dict = alib.open_ss('C:/work/racq/ACCNational/TestRepo/Doc/priority_files.xlsx')
+    priority_list_dict = alib.open_ss('C:/Users/PaulRoetman/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/TestRepo/Doc/priority_files.xlsx')
+    # pr iority_list_dict = alib.open_ss('C:/work/racq/ACCNational/TestRepo/Doc/priority_files.xlsx')
     priority_list_df = priority_list_dict['Sheet1']
     priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']
     priority_list_df['NAME'] = priority_list_df['NAME'].str.lower()

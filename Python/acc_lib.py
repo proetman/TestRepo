@@ -10,6 +10,8 @@ import mmap
 import os
 import socket
 import platform
+import tabulate
+import difflib
 
 import re
 import sys
@@ -17,7 +19,7 @@ import time
 from datetime import datetime
 import pyodbc
 import pandas as pd
-
+import numpy as np
 # import racq_conn_lib as rqconnlib
 
 # --------------------------------------------------------------------
@@ -109,6 +111,300 @@ MAIL_FOOTER = """\
 """
 
 MAIL_FROM_USER = 'noreply@racq.com.au'
+
+# --- Compare
+# --------------------------------------------------------------------
+#
+#        Tab Compare no chunks
+#
+# --------------------------------------------------------------------
+
+
+def tab_compare_df(ps_df, pt_df, p_tab):
+    """
+    Compare the results from two SQL statements.
+
+    assumptions:
+        * Column names HAVE to be IDENTITICAL between the two queries
+        * the sql you pass in, is appropriate for the database connecting to.
+
+    args:
+        * ps_df   -- Source data (from file)
+        * pt_df   -- Target data (from db)
+        * p_tab   -- table name for display purposes only.
+
+    returns:
+        * True - the tables are identical
+        * False - the tables are not identical
+        Any differences are reported to log_error.
+    """
+    log_info('')
+    log_info('Comparing table {}'.format(p_tab))
+
+    source_df = ps_df
+    target_df = pt_df
+
+    len_s = len(source_df.index)
+    len_t = len(target_df.index)
+
+    p_i('Count of source data records = {}'.format(len_s))
+    p_i('Count of target data records = {}'.format(len_t))
+
+    if len_s == 0 and len_t == 0:
+        log_info('Source and target table {} are empty'.format(p_tab))
+        return True, None, None
+
+    s_rem_df = pd.DataFrame(data=None, index=None, columns=source_df.columns)
+    t_rem_df = pd.DataFrame(data=None, index=None, columns=source_df.columns)
+
+    s_rem_df.columns = s_rem_df.columns.str.upper()
+    t_rem_df.columns = t_rem_df.columns.str.upper()
+
+    # --- Setup timing
+
+    record_counter = len(s_rem_df.index)
+    p_d('Remove Matched rows')
+
+    s_rem_df, t_rem_df = tab_compare_del_common(source_df, target_df, p_run_preprocessor=False)
+
+    # --- Finished comparison, start testing the remainder.
+
+    res = False
+
+    if (len(s_rem_df.index) == 0) and (len(t_rem_df.index) == 0):
+        log_debug('s_rem_df.len = 0 and t_rem_df.len = 0')
+        res = True
+
+    s_rem_df.reset_index(inplace=True, drop=True)
+    t_rem_df.reset_index(inplace=True, drop=True)
+
+    if res:
+        log_info('Count of rows compared after removing dupplicates = {}'.
+                 format(record_counter))
+    else:
+        log_info('INFO - the result from the two sql statements is different')
+        tab_compare_log_diff(s_rem_df, t_rem_df, p_tab)
+
+    return res, s_rem_df, t_rem_df
+
+# --------------------------------------------------------------------
+#
+#        push different rows to remainder
+#
+# --------------------------------------------------------------------
+
+
+def tab_compare_del_common(p_s_df, p_t_df, p_run_preprocessor=False):
+    """
+    Removes common rows from 2 data frames with the option to preprocess the frames
+    """
+
+    if isinstance(p_s_df, pd.DataFrame) and isinstance(p_t_df, pd.DataFrame):
+        pass
+    else:
+        log_error('ERROR: Unable to del common rows between dataframes, as ')
+        log_error(' one of the data frames passed in is probably a series.')
+        log_error('size of p_s_df = {}'.format(p_s_df.shape))
+        log_error('size of p_t_df = {}'.format(p_t_df.shape))
+        return(p_s_df, p_t_df)
+
+    #    if p_run_preprocessor:
+    #        pre_process_source(p_s_df)
+    #        pre_process_target(p_t_df)
+
+    if len(p_s_df.index) == 0 and len(p_t_df.index) == 0:
+        return p_s_df, p_t_df
+
+    try:
+        # First get a list of match exact
+        cols = list(p_t_df.columns)
+        common_rows = pd.merge(p_s_df, p_t_df, on=cols, how='inner').drop_duplicates()
+
+        # Add a flag to highlight which rows are do be removed
+        common_rows['key'] = 'common row to be removed'
+
+        # Run a left join on the two df, rows that are common will get the
+        # extra column (key = common row to be remove)
+        # Delete any row where the key is NOT NULL, then drop the key column
+        p_s_df_new = pd.merge(p_s_df, common_rows, on=cols, how='left')
+        p_s_df_new = p_s_df_new[p_s_df_new['key'].isnull()]
+        p_s_df_new.drop('key', axis=1, inplace=True)
+
+        # Repeat on target df
+        p_t_df_new = pd.merge(p_t_df, common_rows, on=cols, how='left')
+        p_t_df_new = p_t_df_new[p_t_df_new['key'].isnull()]
+        p_t_df_new.drop('key', axis=1, inplace=True)
+
+        # return the new dataframes, without the common rows between them.
+        return p_s_df_new, p_t_df_new
+
+    except MemoryError as err:
+        log_error('ERROR - Unable to compare and delete source and target.')
+        log_error('        memory failed when removing common records between 2 data frames')
+        log_error('        aborting table comparison')
+        log_error(err)
+        return p_s_df, p_t_df
+
+    except TypeError as err:
+        log_error('ERROR - Unable to compare and delete source and target.')
+        log_error('        Normally due to unhashable type (bytearray)')
+        log_error('        Please compare manually')
+        log_error('        aborting table comparison')
+        log_error(err)
+        return p_s_df, p_t_df
+
+
+# ---------------------------------------------------------------------
+#
+#                 pandas log difference
+#
+# ---------------------------------------------------------------------
+
+
+def tab_compare_log_diff(p_pd1, p_pd2, p_tab):
+    """
+    Log the differences between two pandas to log_error
+
+    Parameters
+
+       * pd1   : source panda
+       * pd2   : target panda
+       * p_pk  : list of primary key columns, eg ['col1','col2']
+       * p_tab : one of the table names (for reporting only)
+    """
+    log_debug('Start tab_compare_log_diff')
+
+    e_template = 'rownum [{vR:5}] column [{vF:20}] '
+    e_template += 'source: [{v_source}] target: [{v_target}]'
+
+    smaller_size = min(len(p_pd1.index), len(p_pd2.index))
+
+    pd1 = p_pd1[:smaller_size]
+    pd2 = p_pd2[:smaller_size]
+
+    pd1.columns = pd1.columns.str.upper()
+    pd2.columns = pd2.columns.str.upper()
+
+    pd1_not_printed = p_pd1[smaller_size:]
+    pd2_not_printed = p_pd2[smaller_size:]
+
+    pd1.reset_index(inplace=True)
+    pd2.reset_index(inplace=True)
+
+    log_debug('count source = ({}), count target = ({})'.format(len(p_pd1.index),
+                                                                len(p_pd2.index)))
+
+    if smaller_size == 0:
+        p_e('Either source or target count is 0 after matched rows are removed for {}'
+            .format(p_tab))
+    else:
+        log_debug('Try a compare')
+
+        try:
+            # First, create a matrix of rows that are different (true = same, false = diff)
+            eql = ((pd1 == pd2) | ((pd1 != pd1) & (pd2 != pd2)))
+            # pivot the column headings to the row index (from 1 row per diff,
+            #                                                to 1 row per diff per col)
+            eq_stacked = eql.stack()
+            # extract only the rows where there is a difference
+            eq_changed = eq_stacked[eq_stacked == False]
+
+            # difference_locations = np.where(pd1 != pd2)
+            difference = np.where(eql == False)
+            changed_from = pd1.values[difference]
+            changed_to = pd2.values[difference]
+
+        except TypeError as error:
+            # this error occures when pd1 and pd2 are very very different in nature.
+            # as such, one part of the data may be all numeric, and another all string
+            # the difference program freaks out and crashes when comparing.
+            log_error('ERROR - Differences found in result sets, but they are too great')
+            log_error('        for the logging program to print. Please review manually.')
+            log_error('        This difference occurs when the two data sets have different')
+            log_error('        types, and cannot be compared programatically.')
+
+            return
+
+        if (changed_from.size == 0 and
+                changed_to.size == 0 and
+                len(pd1_not_printed.index) == 0 and
+                len(pd2_not_printed) == 0):
+
+            log_error('WARNING: Hmmm difference reported, but no difference found')
+            log_error('         time to panic. Table {}'.format(p_tab))
+            return
+        else:
+
+            log_error('')
+            log_error('{} Difference found'.format(p_tab))
+            log_error('/--------------------------------------------------------------\\')
+
+            diff = pd.DataFrame({'from': changed_from, 'to': changed_to}, index=eq_changed.index)
+            # print(diff)
+            print_counter = 0
+            count_errors = len(diff.index)
+
+            for index, row in diff.iterrows():
+                # Only print the first 100 errors per table.
+                if print_counter > 100:
+                    log_error('ERROR - Too many errors, only displaying first 100 out of {}'
+                              .format(count_errors))
+                    break
+
+                row_number = index[0]
+                row_column = index[1]
+                row_error_from = row['from']
+                row_error_to = row['to']
+
+                if(isinstance(row_error_from, (bytearray, bytes)) or
+                   isinstance(row_error_to, (bytearray, bytes))):
+                    log_error('Cannot display error, non-printable characters')
+                else:
+                    log_error(e_template.format(vR=row_number,
+                                                vF=row_column,
+                                                v_source=row_error_from,
+                                                v_target=row_error_to))
+                log_error('')
+                print_counter += 1
+
+            log_error('Total error count for {} - {}'
+                      .format(p_tab, count_errors))
+
+            log_error('\\--------------------------------------------------------------/')
+
+    # endif smallersize != 0
+
+    if len(pd1_not_printed.index) > 0:
+        if len(pd1_not_printed.index) > 100:
+            p_top_100 = 100
+        else:
+            p_top_100 = len(pd1_not_printed.index)
+        print_df = pd1_not_printed.select_dtypes(exclude=['object'])
+        printstr = tabulate.tabulate(print_df.head(n=p_top_100), headers='keys',
+                                     tablefmt='psql',
+                                     floatfmt='0.2f')
+        log_error('       records compared after matched rows removed = [{}]'
+                  .format(smaller_size))
+        log_error('SOURCE records not included in DIFF due to size mismatch. Showing ' +
+                  'max 100 out of [{}]\n{}'
+                  .format(len(pd1_not_printed.index), printstr))
+
+    if len(pd2_not_printed.index) > 0:
+        if len(pd2_not_printed.index) > 100:
+            p_top_100 = 100
+        else:
+            p_top_100 = len(pd2_not_printed.index)
+        print_df = pd2_not_printed.select_dtypes(exclude=['object'])
+        printstr = tabulate.tabulate(print_df.head(n=p_top_100), headers='keys',
+                                     tablefmt='psql',
+                                     floatfmt='0.2f')
+        log_error('       records compared after matched rows removed = [{}]'
+                  .format(smaller_size))
+        log_error('TARGET records not included in DIFF due to size mismatch. Showing ' +
+                  'max 100 out of [{}]\n{}'
+                  .format(len(pd2_not_printed.index), printstr))
+
+    return
 
 # --- Reports
 # --------------------------------------------------------------------
@@ -503,6 +799,8 @@ def load_dir(p_args):
     default_sync_dir = home_dir + '/AUSTRALIAN CLUB CONSORTIUM PTY LTD/'
     default_sync_dir += 'Phase 3 - Deploy Phase - Phase 3/CARS Data and Data Management'
 
+    default_sync_dir = 'C:/work/stuff/all_2017_apr_18'
+    default_sync_dir = 'C:/work/stuff/all_2017_apr_19__1540'
 
     # -- club files
     default_club_dir = default_sync_dir + '/Data Templates by Club'
@@ -536,6 +834,114 @@ def load_dir(p_args):
 
     return work_dir
 
+# --- Sql Server
+# --------------------------------------------------------------------
+#
+#                          fetch tab col data
+#
+# --------------------------------------------------------------------
+
+
+def fetch_tab_col(p_db_conn):
+    """ fetch all tables and columns """
+
+    sql = """
+        SELECT  UPPER(c.table_schema)          AS "schema",
+                UPPER(c.table_name)            AS "table",
+                UPPER(c.column_name)           AS "column",
+                c.data_type                    as "data_type",
+                c.ORDINAL_POSITION             as "col_id",
+                case
+                    when pk.COLUMN_NAME = c.column_name THEN 'Y'
+                    ELSE 'N'
+                END                            as "pk",
+                case is_nullable
+                    when 'NO'     then 'Y'
+                    else               'N'
+                end                            as "mandatory"
+         FROM information_schema.columns c
+             LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk
+                 ON  OBJECTPROPERTY (OBJECT_ID (pk.CONSTRAINT_SCHEMA + '.' +
+                                     pk.CONSTRAINT_NAME),'IsPrimaryKey') = 1
+                 AND pk.TABLE_NAME = c.table_name
+                 AND pk.COLUMN_NAME =  c.column_name
+                 AND pk.TABLE_SCHEMA = c.table_schema
+                        """
+
+    dd_df = read_table_data(p_db_conn, sql, p_description='Schema')
+
+    return dd_df
+
+# --------------------------------------------------------------------
+#
+#                          fetch columns for table
+#
+# --------------------------------------------------------------------
+
+
+def fetch_columns(p_df, p_tab):
+    """ fetch columns for this table """
+
+    log_debug('start fetch columns for table {}'.format(p_tab))
+
+    tab_ind = p_df['TABLE'] == p_tab.upper()
+
+    col_df = p_df[tab_ind]
+    new_df = col_df.sort_values(['COL_ID'])
+    new_df.reset_index(drop=True, inplace=True)
+    return new_df
+
+# --- Read Data from database
+# --------------------------------------------------------------------
+#
+#        Read Data into Dataframe
+#
+# --------------------------------------------------------------------
+
+
+def read_table_data(p_conn, p_sql,
+                    p_description=None,
+                    p_display_info=True,
+                    p_force_uppercase_headings=True):
+    """
+    xx Read table data and load into dataframe
+    Any issues, and it returns None
+
+    """
+    log_debug('start read table data, sql = [{}]'.format(p_sql))
+
+    if p_sql is None:
+        print('No SQL passed into function, returning None')
+        return None
+
+    if p_description is None:
+        l_desc = '        Read data'
+    else:
+        l_desc = '        Read {} data'.format(p_description)
+
+    if p_display_info:
+        p_i(l_desc, p_end=" ")
+        sys.stdout.flush()
+
+    try:
+        l_df = pd.read_sql(p_sql, p_conn)
+
+    except pd.io.sql.DatabaseError as err:
+        p_e('ERROR raised running SQL, please manually review')
+        p_e('      error text: {}'.format(err))
+        odbc_sql_exec(p_conn['conn'], 'rollback')
+        return None
+
+    if p_force_uppercase_headings:
+        l_df.columns = l_df.columns.str.upper()
+
+    if p_display_info:
+        count_rows = len(l_df.index)
+        p_i('{} rows'.format(count_rows))
+
+    log_debug('    read table data, row count fetch = [{}]'.format(len(l_df.index)))
+
+    return l_df
 
 # --- DB Connect
 # --------------------------------------------------------------------
@@ -556,6 +962,7 @@ def db_connect_mssql(p_con):
 
     l_host = p_con['host']
     l_instance = p_con['instance']
+    l_schema = p_con['schema']
     l_db = p_con['db']
 
     e_template = 'ERROR: Failed to connect to MSSQL Database. '
@@ -571,10 +978,9 @@ def db_connect_mssql(p_con):
     connect_template = r'Driver={{SQL Server}};Server={vHost}\{vI};'
     connect_template += 'Database={vDB};Trusted_Connection=yes;'
 
-
     connect_str = connect_template.format(vHost=l_host,
                                           vI=l_instance,
-                                          vDB=l_db)
+                                          vDB=l_schema)
 
     try:
 
@@ -583,7 +989,7 @@ def db_connect_mssql(p_con):
     except pyodbc.ProgrammingError as err:
         print(err)
         error_msg = e_template.format(vHost=l_host,
-                                      vI=l_instance,
+                                      vStr=connect_str,
                                       vDB=l_db)
         p_e(error_msg)
         p_e(err)
@@ -592,7 +998,7 @@ def db_connect_mssql(p_con):
     except pyodbc.DatabaseError as err:
         print(err)
         error_msg = e_template.format(vHost=l_host,
-                                      vI=l_instance,
+                                      vStr=connect_str,
                                       vDB=l_db)
         p_e(error_msg)
         p_e(err)
@@ -601,51 +1007,13 @@ def db_connect_mssql(p_con):
     except pyodbc.Error as err:
         print(err)
         error_msg = e_template.format(vHost=l_host,
-                                      vI=l_instance,
+                                      vStr=connect_str,
                                       vDB=l_db)
         p_e(error_msg)
         p_e(err)
         return None
 
     return db_conn
-
-# --------------------------------------------------------------------
-#
-#                          odbc sql exec
-#
-# --------------------------------------------------------------------
-
-
-def odbc_sql_exec(p_conn, p_sql):
-    """
-    Execute SQL Statement
-    return True or False
-    """
-
-    log_debug('    odbc execute SQL: [' + p_sql + '].')
-
-    try:
-        cur = p_conn.cursor()
-
-        cur.execute(p_sql)
-        cur.close()
-
-    except pyodbc.ProgrammingError as err:
-        cur.close()
-        odbc_sql_exec(p_conn, 'rollback')
-        log_debug('    result FAIL')
-        log_critical("\nexec_sqlddl  Error({0})".format(err))
-        return False
-
-    except pyodbc.Error as err:
-        cur.close()
-        odbc_sql_exec(p_conn, 'rollback')
-        log_critical("\nexec_sqlddl  ProgrammingError({0})".format(err))
-        log_critical("\nexec_sqlddl  Failed executing sql : " + p_sql)
-        return False
-
-    log_debug('    execute ok, return TRUE')
-    return True
 
 # --------------------------------------------------------------------
 #
@@ -682,6 +1050,7 @@ def odbc_sql_fetch(p_conn, p_sql, p_arraysize=10000):
 
     cur.close()
     return rows
+
 # --------------------------------------------------------------------
 #
 #                          odbc sql exec
@@ -689,7 +1058,7 @@ def odbc_sql_fetch(p_conn, p_sql, p_arraysize=10000):
 # --------------------------------------------------------------------
 
 
-def odbc_sql_exec2(p_conn, p_sql):
+def odbc_sql_exec(p_conn, p_sql):
     """
     Execute SQL Statement
     return rowcount
@@ -724,67 +1093,6 @@ def odbc_sql_exec2(p_conn, p_sql):
         log_debug('    execute ok, return rowcount = {}'.format(rowcount))
 
     return rowcount
-
-# --------------------------------------------------------------------
-#
-#        Read Data into Dataframe
-#
-# --------------------------------------------------------------------
-
-
-def read_table_data(p_db_conn, p_sql,
-                    p_description=None,
-                    p_display_info=True,
-                    p_chunksize=None,
-                    p_force_uppercase_headings=True):
-    """
-    Read table data and load into dataframe
-    Any issues, and it returns None
-
-    NOTE: If p_chunksize is set to anything above 0, this will return a GENERATOR.
-          It will not return a dataframe.
-          This generator can then be used to call data chunk by chunk.
-
-    """
-    log_debug('start read table data, sql = [{}]'.format(p_sql))
-
-    if p_sql is None:
-        print('No SQL passed into function, returning None')
-        return None
-
-    if p_description is None:
-        l_desc = '        Read data'
-    else:
-        l_desc = '        Read {} data'.format(p_description)
-
-    if p_chunksize is None:
-        if p_display_info:
-            p_i(l_desc, p_end=" ")
-            sys.stdout.flush()
-
-    try:
-        l_df = pd.read_sql(p_sql, p_db_conn, chunksize=p_chunksize)
-
-        if p_chunksize is None:
-            if p_force_uppercase_headings:
-                l_df.columns = l_df.columns.str.upper()
-
-            if p_display_info:
-                count_rows = len(l_df.index)
-                p_i('{} rows'.format(count_rows))
-
-    except pd.io.sql.DatabaseError as err:
-        p_e('ERROR raised running SQL, please manually review')
-        p_e('      error text: {}'.format(err))
-        odbc_sql_exec(p_db_conn, 'rollback')
-        return None
-
-    if p_chunksize is None:
-        log_debug('    read table data, row count fetch = [{}]'.format(len(l_df.index)))
-
-    return l_df
-
-
 
 # --- Init
 # --------------------------------------------------------------------
@@ -1017,31 +1325,6 @@ def fetch_log_dirs():
 
 
 # --- OS db Commands
-# --------------------------------------------------------------------
-#
-#                          Test Oracle Version
-#
-# --------------------------------------------------------------------
-
-
-def test_oracle_version_ms_proc(p_conn):
-    """
-    Test to see if the oracle version is 10.2.0.4
-    If it is, then millisecond processing will be disabled due to oracle bug.
-    """
-
-    ora_ver = fetch_oracle_version(p_conn)
-
-    if ora_ver is None:
-        p_e('Unable to determine oracle version, please review coding, aborting')
-        exit(-1)
-
-    elif '10.2.0.4' in ora_ver:
-        p_i('Oracle version 10.2.0.4 detected, millisecond processing will be disabled.')
-        return True
-
-    return False
-
 # --------------------------------------------------------------------
 #
 #                          Search File for String (RE)
@@ -1847,5 +2130,293 @@ def log_warning(print_string):
 def log_error(print_string):
     """ Error  to log file """
     logging.error(print_string)
+
+# --- Debug Stuff
+# --------------------------------------------------------------------
+#
+#                          debug results
+#
+# --------------------------------------------------------------------
+
+
+def debug_results(p_type, p_s_df, p_t_df, p_tab):
+    """
+    This routine is for debugging data only, it should not be used for displaying
+    any results.
+    The routines are to find differences in data, to assist with coding issues
+    (eg comparing NaN to None, looking for unprintable char, etc)
+    """
+
+    log_debug('Start debug results2')
+
+    if p_type is None:
+        log_debug('Debug Type is None, doing nothing')
+
+    elif p_type == 'a':
+        debug_test_a(p_s_df, p_t_df)
+
+    elif p_type == 'b':
+        debug_test_b(p_s_df, p_t_df)
+
+    elif p_type == 'c':
+        debug_test_c(p_s_df, p_t_df, p_tab)
+
+    elif p_type == 'c1':
+        debug_test_c_deep1(p_s_df, p_t_df, p_tab)
+
+    elif p_type == 'c2':
+        debug_test_c_deep2(p_s_df, p_t_df, p_tab)
+
+    elif p_type == 'd':
+        debug_test_d(p_s_df, p_t_df, p_tab)
+
+    return
+
+# --------------------------------------------------------------------
+#
+#                          debug test
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_a(p_csv_df, p_tab_df):
+    """
+    Remove one column at a time, and run the comparison.
+    When the error count drops considerably, you have found the problem child column.
+    """
+    new_cols = list(p_csv_df.columns)
+
+    # p_tab_df.fillna(value=np.nan, inplace=True)
+
+    csv_rem_df, tab_rem_df = tab_compare_del_common(p_csv_df, p_tab_df)
+    error_count = len(csv_rem_df.index)
+    p_d('test cols = {} (none removed)'.format(new_cols))
+    p_d('    error count = {}'.format(error_count))
+
+    while len(new_cols) > 1:
+        new_cols = new_cols[:-1]
+        p_d('test cols = {}'.format(new_cols))
+        new_csv_df = p_csv_df[new_cols]
+        new_tab_df = p_tab_df[new_cols]
+
+        csv_rem_df, tab_rem_df = tab_compare_del_common(new_csv_df, new_tab_df)
+        error_count = len(csv_rem_df.index)
+        p_d('    error count = {}'.format(error_count))
+
+    return
+# --------------------------------------------------------------------
+#
+#                          debug test 3
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_b(pd1, pd2):
+    """
+    Remove one column at a time, and run the comparison.
+    When the error stops getting raised, you have found the problem child column.
+    (i.e. the column that raised a value error when running a comparison of DF's)
+    """
+
+    new_cols = list(pd1.columns)
+
+    while len(new_cols) > 1:
+        new_cols = new_cols[:-1]
+        p_d('test cols = {}'.format(new_cols))
+
+        new_csv_df = pd1[new_cols]
+        new_tab_df = pd2[new_cols]
+
+        try:
+            eql = ((new_csv_df == new_tab_df) | ((new_csv_df != new_csv_df) &
+                                                 (new_tab_df != new_tab_df)))
+
+            p_d('len of eq1 is {}'.format(len(eql.index)))
+
+        except ValueError:
+            p_d('Failed on value error')
+
+    return
+
+
+# --------------------------------------------------------------------
+#
+#                          debug test
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_c(p_csv_df, p_tab_df, p_tab):
+    """
+    Loop through each column and run the comparison
+    """
+    new_cols = list(p_csv_df.columns)
+    p_d('len of new list is {}'.format(len(new_cols)))
+
+    for col in new_cols:
+        p_d('Processing column {}'.format(col))
+
+        new_csv_df = p_csv_df[col].to_frame()
+        new_tab_df = p_tab_df[col].to_frame()
+        csv_rem_df, tab_rem_df = tab_compare_del_common(new_csv_df, new_tab_df)
+        error_count = len(csv_rem_df.index) + len(tab_rem_df.index)
+        p_d('    Debug_test2 column {}, error_count = {}'.format(col, error_count))
+        if error_count > 0:
+            log_error('        Errors found on tab.col {}.{} = {}'
+                      .format(p_tab, col, error_count))
+
+    return
+
+# --------------------------------------------------------------------
+#
+#                          debug test
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_c_deep1(p_csv_df, p_tab_df, p_tab):
+    """
+    This code is derived from debug_test2,
+    It can be used where the two rows that are being compared are from the same Primary key.
+    It does a very thorough comparison of the fields.
+    """
+
+    new_cols = list(p_csv_df.columns)
+    p_d('len of new list is {}'.format(len(new_cols)))
+
+    for col in new_cols:
+        p_d('Processing column {}'.format(col))
+
+        new_csv_df = p_csv_df[col].to_frame()
+        new_tab_df = p_tab_df[col].to_frame()
+        csv_rem_df, tab_rem_df = tab_compare_del_common(new_csv_df, new_tab_df)
+        error_count = len(csv_rem_df.index) + len(tab_rem_df.index)
+        p_d('    Debug_test4 column {}, error_count = {}'.format(col, error_count))
+        if error_count > 0:
+            log_error('        Errors found on tab.col {}.{} = {}'
+                      .format(p_tab, col, error_count))
+
+            # NOTE: this only works when the different rows match on both sides
+            # otherwise use the next for loop.
+            for i, row in csv_rem_df.iterrows():
+                p_d('            processing row {}'.format(i))
+                src = csv_rem_df[col][i]
+                trg = tab_rem_df[col][i]
+
+                if isinstance(src, int) or isinstance(trg, int):
+                    pass
+                else:
+                    for pos, rrow in enumerate(difflib.ndiff(src, trg)):
+                        if rrow[0] == ' ':
+                            continue
+                        elif rrow[0] == '-':
+                            p_d(u'                Delete "{}" from position {} ({})'.
+                                format(rrow[-1], pos, ord(rrow[-1])))
+                        elif rrow[0] == '+':
+                            p_d(u'                Add "{}" to position {} ({})'.
+                                format(rrow[-1], pos, ord(rrow[-1])))
+
+    return
+
+# --------------------------------------------------------------------
+#
+#                          debug test
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_c_deep2(p_csv_df, p_tab_df, p_tab):
+    """
+    This code is derived from debug_test2 and debug_test4,
+    It can be used where the two rows that are being compared are from the same Primary key.
+    It does a very thorough comparison of the fields.
+    """
+
+    new_cols = list(p_csv_df.columns)
+    p_d('len of new list is {}'.format(len(new_cols)))
+
+    for col in new_cols:
+        p_d('Processing column {}'.format(col))
+
+        new_csv_df = p_csv_df[col].to_frame()
+        new_tab_df = p_tab_df[col].to_frame()
+        csv_rem_df, tab_rem_df = tab_compare_del_common(new_csv_df, new_tab_df)
+        error_count = len(csv_rem_df.index) + len(tab_rem_df.index)
+        p_d('    Debug_test4 column {}, error_count = {}'.format(col, error_count))
+        if error_count > 0:
+            log_error('        Errors found on tab.col {}.{} = {}'
+                      .format(p_tab, col, error_count))
+
+            # this loop is much slower, as it compares EVERY row in the original dataframe
+            # use the previous loop to just compare differences.
+
+            for row, idx in new_csv_df.iterrows():
+                p_d('            processing row {}'.format(row))
+                src = new_csv_df[col][idx]
+                trg = new_tab_df[col][idx]
+
+                if isinstance(src, int) or isinstance(trg, int):
+                    pass
+                else:
+                    if src is not None and trg is not None:
+                        for pos, rrow in enumerate(difflib.ndiff(src, trg)):
+                            if rrow[0] == ' ':
+                                continue
+                            elif rrow[0] == '-':
+                                p_d(u'                Delete "{}" from position {} ({})'.
+                                    format(rrow[-1], pos, ord(rrow[-1])))
+                            elif rrow[0] == '+':
+                                p_d(u'                Add "{}" to position {} ({})'.
+                                    format(rrow[-1], pos, ord(rrow[-1])))
+
+    return
+# --------------------------------------------------------------------
+#
+#                          debug test d
+#
+# --------------------------------------------------------------------
+
+
+def debug_test_d(p_csv_df, p_tab_df, p_tab):
+    """
+    similar to test_c, but first remove the rows that do not have a common PK
+
+    """
+    new_cols = list(p_csv_df.columns)
+    p_d('len of new list is {}'.format(len(new_cols)))
+
+    for col in new_cols:
+        p_d('Processing column {}'.format(col))
+
+        new_csv_df = p_csv_df[col].to_frame()
+        new_tab_df = p_tab_df[col].to_frame()
+        csv_rem_df, tab_rem_df = tab_compare_del_common(new_csv_df, new_tab_df)
+        error_count = len(csv_rem_df.index) + len(tab_rem_df.index)
+        p_d('    Debug_test4 column {}, error_count = {}'.format(col, error_count))
+        if error_count > 0:
+            log_error('        Errors found on tab.col {}.{} = {}'
+                      .format(p_tab, col, error_count))
+
+            # NOTE: this only works when the different rows match on both sides
+            # otherwise use the next for loop.
+            for i, row in csv_rem_df.iterrows():
+                p_d('            processing row {}'.format(i))
+                src = csv_rem_df[col][i]
+                trg = tab_rem_df[col][i]
+
+                if isinstance(src, int) or isinstance(trg, int):
+                    pass
+                else:
+                    for pos, rrow in enumerate(difflib.ndiff(src, trg)):
+                        if rrow[0] == ' ':
+                            continue
+                        elif rrow[0] == '-':
+                            p_d(u'                Delete "{}" from position {} ({})'.
+                                format(rrow[-1], pos, ord(rrow[-1])))
+                        elif rrow[0] == '+':
+                            p_d(u'                Add "{}" to position {} ({})'.
+                                format(rrow[-1], pos, ord(rrow[-1])))
+
+    return
 
 # --- eof ---

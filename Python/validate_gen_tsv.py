@@ -18,8 +18,8 @@ import re
 # import time
 # import math
 
-import numpy as np
-import pandas as pd
+# import numpy as np
+# import pandas as pd
 
 import acc_lib as alib
 
@@ -90,6 +90,9 @@ def tsvg_fetch_target_name(p_tsv_dir, p_curr_file, p_tab):
     # remove .xlsx
     l_filename += ''.join(p_curr_file.split('.')[:-1])
 
+    full_path = os.path.dirname(l_filename)
+    alib.dir_create(full_path)
+
     l_tab = p_tab.replace('.', '__').upper()
     l_tab = l_tab.replace(' ', '_').upper()
     l_tab = l_tab.replace('"', '_').upper()
@@ -100,8 +103,6 @@ def tsvg_fetch_target_name(p_tsv_dir, p_curr_file, p_tab):
     alib.log_debug('End tsvg fetch target name, filename = {}'.format(l_filename))
 
     return l_filename
-
-
 
 # ------------------------------------------------------------------------------------------
 #
@@ -134,8 +135,22 @@ def tgsv_pre_process(p_df):
         """
         Lambda function to replace characters that bryte cannot tolerate
         """
-        dodgy_char = '\r'
-        dodgy_char2 = '\n'
+        dodgy_char = '’'
+        dodgy_char2 = '‘'
+        dodgy_char3 = '–'
+        dodgy_char4 = '”'
+        dodgy_char5 = '“'
+        dodgy_char6 = '…'
+        dodgy_char7 = '\r'
+        dodgy_char8 = '\n'
+        dodgy_char10 = '\t'
+        dodgy_char12 = '–'
+        dodgy_char15 = '‐'      # This is a different hyphon
+
+        dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii. Every field is terminated with it.
+        dodgy_char21 = '·'      # another bizarre hyphon
+        dodgy_char22 = '│'
+        dodgy_char23 = '√'
 
         if(p_field is None or
            isinstance(p_field, datetime.date) or
@@ -143,10 +158,29 @@ def tgsv_pre_process(p_df):
             new_field = p_field
         else:
 
-            new_field = re.sub(dodgy_char, " ", p_field)
-            new_field = re.sub(dodgy_char2, " ", new_field)
+            new_field = re.sub(dodgy_char, "'", p_field)
+            new_field = re.sub(dodgy_char2, "'", new_field)
+            new_field = re.sub(dodgy_char3, "-", new_field)
+            new_field = re.sub(dodgy_char4, '"', new_field)
+            new_field = re.sub(dodgy_char5, '"', new_field)
+            new_field = re.sub(dodgy_char6, '.', new_field)
+            new_field = re.sub(dodgy_char7, ' ', new_field)
+            new_field = re.sub(dodgy_char8, ' ', new_field)
+            new_field = re.sub(dodgy_char10, ' ', new_field)
+            new_field = re.sub(dodgy_char12, '-', new_field)
+            new_field = re.sub(dodgy_char15, '-', new_field)
 
-            # new_field = re.sub('[^ -~]', ' ', new_field)
+            new_field = re.sub(dodgy_char20, ' ', new_field)
+            new_field = re.sub(dodgy_char21, '-', new_field)
+            new_field = re.sub(dodgy_char22, '|', new_field)
+            new_field = re.sub(dodgy_char23, ' ', new_field)
+
+            tmp_field = re.sub('[^ -~]', 'X', new_field)
+
+            if tmp_field != new_field:
+                alib.p_e('ERROR:  FOUND NON ASCII CHAR - PANIC')
+                alib.p_e('        orig data = [{}]'.format(new_field))
+                alib.p_e('        mod  data = [{}]'.format(tmp_field))
 
             # remove trailing spaces
             new_field = re.sub(' *$', '', new_field)
@@ -199,82 +233,72 @@ def tsvg_validate_col_headings(p_df):
 # --------------------------------------------------------------------
 
 
-def tsv_generate(p_work_dict, p_priority_df, p_tsv_dir):
+def tsv_generate(p_list, p_tsv_dir):
     """
     Perform some quick and dirty analsys on the files
     """
     alib.log_debug('start tsv generate')
 
-    l_filename = "c:/test_results/data/generate_tsv_report.txt"
-    with open(l_filename, "w+") as l_file_ptr:
+    for f in p_list:
 
-        for key, value in p_work_dict.items():
-            curr_file = value['club_file_short'].split('/')[-1]
-            if curr_file is None:
-                print('curr file none: derived from {}'.format(value['club_file_short']))
-                curr_file = 'was_none'
+        if '/common data templates/' in f:
+            short_name = '/'.join(f.split('/')[-3:])
+        else:
+            short_name = '/'.join(f.split('/')[-4:])
+        print(short_name)
 
-            l_tag = value['tag']
-            if l_tag is None:
-                l_tag = ''
+        l_ss = alib.open_ss(f)
 
-            l_file_ptr.write('club file: {:30} - {}\n'.format(l_tag, curr_file))
+        if l_ss is None:
+            alib.p_e('Failed to open file {}'.format(f))
+            continue
 
-            l_ss = value['club_ss']
-            if l_ss is None:
-                continue
+        alib.cleanup_ss(l_ss)
 
-            alib.cleanup_ss(l_ss)
+        for key, value in l_ss.items():
+            # Now have a single tab from the spreadsheet as a dataframe
+            l_tab_df = value
+            l_tab_key = key
 
-            for key, value in l_ss.items():
-                # Now have a single tab from the spreadsheet as a dataframe
-                l_tab_df = value
-                l_tab_key = key
-                l_file_ptr.write('    tab: {}\n'.format(l_tab_key))
+            # if this TAB has any data on it
+            if len(l_tab_df.index) > 1:
 
-                # if this TAB has any data on it
-                if len(l_tab_df.index) > 1:
+                l_target_filename = tsvg_fetch_target_name(p_tsv_dir, short_name, l_tab_key)
+                tsvg_validate_col_headings(l_tab_df)
 
-                    tsvg_validate_col_headings(l_tab_df)
+                alib.log_debug('    Write to file {}'.format(l_target_filename))
+                alib.log_debug('    number of lines {}'.format(len(l_tab_df.index)))
 
-                    l_target_filename = tsvg_fetch_target_name(p_tsv_dir, curr_file, l_tab_key)
+                # remove dodgy char
+                tgsv_pre_process(l_tab_df)
 
-                    l_file_ptr.write('    out: {}\n'.format(l_target_filename))
+                # write to disk
+                l_tab_df.to_csv(l_target_filename,
+                                sep='\t',
+                                index=False,
+                                date_format='%d-%m-%Y  %H:%M:%S')
 
-                    alib.log_debug('    Write to file {}'.format(l_target_filename))
-                    alib.log_debug('    number of lines {}'.format(len(l_tab_df.index)))
-
-                    # remove dodgy characters
-                    print(curr_file)
-#                    if curr_file == 'external service supplier_rac.xlsx':
-#                        print('key = {}'.format(key))
-#                        if key == 'Rates Country':
-#                            x = 1
-                    tgsv_pre_process(l_tab_df)
-                    l_tab_df.to_csv(l_target_filename,
-                                    sep='\t',
-                                    index=False,
-                                    date_format='%d-%m-%Y  %H:%M:%S')
-
-                    tsvg_validate(l_target_filename)
+                tsvg_validate(l_target_filename)
 
     alib.log_debug('end tsv generate')
 
 # --------------------------------------------------------------------
 #
-#                          create dir
+#                          loop through files
 #
 # --------------------------------------------------------------------
 
-def tsv_create_dir():
 
-    # Target TSV directory
-    data_dir = TEST_RESULT_DIRS['data']
-    tsv_dir = data_dir + '/' + 'tsv_files'
-    if alib.dir_create(tsv_dir):
-        alib.p_e('Unable to create directory for TSV files, aborting')
-        return False
-    return True
+def process_files(p_files, p_tsv_dir):
+    """
+    Perform some quick and dirty analsys on the files
+    """
+
+    tsv_generate(p_files['c'], p_tsv_dir)
+    tsv_generate(p_files['cc'], p_tsv_dir)
+
+    return
+
 # --- Program Init
 # --------------------------------------------------------------------
 #
@@ -368,16 +392,6 @@ def main():
     if not alib.init_app(args):
         return alib.FAIL_GENERIC
 
-    home_dir = os.environ['USERPROFILE'].replace('\\', '/')
-    priority_file = home_dir + '/OneDrive - AUSTRALIAN CLUB CONSORTIUM PTY LTD/work/git/'
-    priority_file += 'TestRepo/Doc/priority_files.xlsx'
-    priority_list_dict = alib.open_ss(priority_file)
-
-    # pr iority_list_dict = alib.open_ss('C:/work/racq/ACCNational/TestRepo/Doc/priority_files.xlsx')
-    priority_list_df = priority_list_dict['Sheet1']
-    priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']
-    priority_list_df['NAME'] = priority_list_df['NAME'].str.lower()
-
     tsv_dir = alib.tsv_create_dir()
     if tsv_dir is None:
         alib.p_e('no tsv dir, aborting')
@@ -387,11 +401,11 @@ def main():
     print('Loading files from {}'.format(work_dir['l_c_dir']))
     work_files = alib.load_files(work_dir, args['quick_debug'])
 
-    work_dict = alib.load_matching_masterfile(work_files)
-    alib.load_tags(work_dict)
-    alib.print_filenames(work_dict)
+    #    work_dict = alib.load_matching_masterfile(work_files)
+    #    alib.load_tags(work_dict)
+    #    alib.print_filenames(work_dict)
 
-    tsv_generate(work_dict, priority_list_df, tsv_dir)
+    process_files(work_files, tsv_dir)
 
     alib.p_i('Done...')
 

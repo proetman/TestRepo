@@ -1,0 +1,590 @@
+# -------------------------------------------- HEX ---------------------------------------
+# -------------------------------------------- HEX ---------------------------------------
+# -------------------------------------------- HEX ---------------------------------------
+# -------------------------------------------- HEX ---------------------------------------
+# -------------------------------------------- HEX ---------------------------------------
+
+          Matrix report for "stock movement management (surefire)" execution order 2-68, verification HEX
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+1.Operational Hierarchies                   16              17                             142              19               4 
+10.Price Levels                             12              12                              12              10              12 
+11. Extended Attributes                                                                    124                                 
+11.Extended Attributes                       5               5                                               5               2 
+2.Modifier Groups                            4               2                              14               2               1 
+3.Products                                 255              59                                             129               2 
+3.Products                                                                                 140                                 
+4.Location Types                             3               3                               3               3               3 
+5.Locations                                116              26                             140              18               2 
+6.Stock for Locations                    23456             622                             419           18944               2 
+7.Stock Adjustments                          2               2                             415            2354               1 
+8.Devices                                  108              24                             250               3               2 
+9.Terminals                                108              24                             250             278               2 
+Configuration                               17              17                              16              17              17 
+List                                        12              12                              12              12              12 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/stock movement management (surefire)/stock movement management (surefire) - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/stock movement management (surefire)/stock movement management (surefire) - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/stock movement management (surefire)/stock movement management (surefire) - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/stock movement management (surefire)/stock movement management (surefire) - ract.xlsx"
+
+          Matrix report for "response plans.xlsx" execution order 6, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Battery Part #                             173             173 
+Response Plans                              39              37 
+Skills by Club                              13              13 
+Unit Type                                    9               9 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/dispatch/response plans.xlsx"
+
+
+          Matrix report for "crib locations" execution order 8, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+
+
+          Matrix report for "incident management" execution order 16-27, verification HEX
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+1.Club                                       1               1               1               1               1               1 
+10. Media Templates                          2              13               2               2               2              13 
+11. Comment Category                         9                               9               7                                 
+2.Programs                                  11               5              11               6              60               9 
+3.Product                                   39              22              29              58             233              23 
+4.Benefits                                  36              30              28              20              64               2 
+5.Benefit Questions                        229             226             186              58             310               2 
+6. Benefit Rules                            40              35              31              19              78              30 
+6.Associate Benefits                        34              29              26            1026            2084              24 
+7.Incident Questions                        64              38              17             546             141               0 
+8. Add New Incident Supplier              2281            7956            1818             815            1451               2 
+9. Automatic Incidents                      37              72              36               2               2               2 
+Configuration steps                         10               9              10              10               9               9 
+Lists                                       34              34              34              34              34              34 
+Version control                             13              11               8              10              16               8 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/incident management/incident management - aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/incident management/incident management - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/incident management/incident management - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/incident management/incident management - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/incident management/incident management - ract.xlsx"
+
+          Matrix report for "incident management - supplier types.xlsx" execution order 23, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Configuration                                0               0 
+Incident Supplier Types                     14              14 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/incident management (inc nap)/incident management - supplier types.xlsx"
+
+          Matrix report for "incident management - comment category.xlsx" execution order 27, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Comment Category                             9               9 
+Configuration                                0               0 
+List                                         1               1 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/incident management (inc nap)/incident management - comment category.xlsx"
+
+
+          Matrix report for "external service supplier" execution order 28-43, verification HEX
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Apply Rates                                522             641             102             518            2374             185 
+Calendars                                   14              25              42              45              18              42 
+Calendars (Unique Days)                     30              13              14              16              28              14 
+Contractors                                                                                697                                 
+Disposition Types - Load File                                                              517                                 
+ESS Contact Details                        641             545             391             465             748             422 
+ESS Details                                200             212             108             153             189             132 
+Exception Rules                            199             200             162             134             233             162 
+GL Code Mapping                                                             11                                              11 
+GL Code Mapping (RAA use only)              14                                                                                 
+Group                                       20              60              10              18              48              12 
+Incomplete Disposition                       2               2               2               2               2               2 
+Km Calculation                               2               2               2               2               2               2 
+Legend                                       4               4               4               4               4               4 
+Lists                                      143             143             143             143             143             143 
+Overview                                    10              10              10              10              10              10 
+Payment Rules                               69              80              21             196             182              28 
+Personnel                                    0               0               0               0               0               0 
+RAtes Metro RS                                                                              27                                 
+Rates Country                                                                               46                                 
+Rates Metro Tow                                                                             41                                 
+Reference Time                               2               2               2               2               2               2 
+Rule Set (Priority)                         85              45              77             209             248              77 
+Rule Set (Products)                          1               2               1              61             240               1 
+Service Providers                                                                          284                                 
+Supplier listing LATEST (2)                                                                884                                 
+Unit                                                                         0                                               0 
+Unit                                                                                         0                                 
+Unit Availability                            5               3               3             301               0               3 
+Unit Group                                   2               2               2               2               2               2 
+Unit-Group                                 202              59             301             191            1013             301 
+Vehicle                                      0               0               0               0               0               0 
+event_type - Response Plans                                                                168                                 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/external service supplier management (cps)/external service supplier_aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/external service supplier management (cps)/external service supplier_raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/external service supplier management (cps)/external service supplier_rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/external service supplier management (cps)/external service supplier_racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/external service supplier management (cps)/external service supplier_ract.xlsx"
+
+          Matrix report for "special situation type - field config.xlsx" execution order 44, verification HEX
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Special Situation Type                      16              15 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/special situation type - field config.xlsx"
+
+
+          Matrix report for "esp response" execution order 45, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Attribution                                                                238                                             238 
+Configuration                                0               0               0               0               0               0 
+Dispatch Areas - List                       72              72                                              72                 
+List                                                                         3                                               3 
+Lookup                                       3               3                               3               3                 
+Response                                   141             101              29             201            2236              29 
+Response (Old)                                                             402                                             402 
+Response (obsolete)                       1182            1182                                            1182                 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/dispatch/esp response - aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/dispatch/esp response - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/dispatch/esp response - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/dispatch/esp response - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/dispatch/esp response - ract.xlsx"
+
+          Matrix report for "eta band scripting.xlsx" execution order 49, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+AD ETA Band & Scripting - EC                28                 
+Customer ETA                                 0               0 
+Non AD ETA - Dispatch                       25                 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/eta band scripting.xlsx"
+
+          Matrix report for "cti numbers & scripts" execution order 50, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+AANT                                                                        38                                              47 
+RAA                                        136                                                                                 
+RAC                                                                                         34                                 
+RACQ 131111 Greeting Screen                                                                                  0                 
+RACQ CTI Number-Greetings                                                                                   38                 
+RACT                                                        38                                                                 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/event creation/cti numbers & scripts - aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/event creation/cti numbers & scripts - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/event creation/cti numbers & scripts - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/event creation/cti numbers & scripts - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/event creation/cti numbers & scripts - ract.xlsx"
+
+          Matrix report for "mr risk assessment" execution order 57, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Add-Edit Risk                               13              13                              13              51              13 
+Risk Assessment                              1               1                               1               3               1 
+Sheet1                                       7               7                               7               7               7 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/event completion/mr risk assessment - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/event completion/mr risk assessment - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/event completion/mr risk assessment - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/event completion/mr risk assessment - ract.xlsx"
+
+          Matrix report for "mr risk mitigation" execution order 58, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+RAA Risk Mitigation                         22                                                                              22 
+RAC Risk Mitigation                                                                          2                                 
+RACQ Risk Mitigation                                                                                         2                 
+RACT Risk Mitigation                                        10                                                                 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/event completion/mr risk mitigation - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/event completion/mr risk mitigation - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/event completion/mr risk mitigation - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/event completion/mr risk mitigation - ract.xlsx"
+
+          Matrix report for "mr canned comments.xlsx" execution order 59, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+MR Canned Comments                          56              56 
+Overview                                     2               2 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event completion/mr canned comments.xlsx"
+
+          Matrix report for "cancel event screens - field config.xlsx" execution order 60, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Cancel Event - Pending                      13              13 
+Request Event Cancellation                  11              11 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/cancel event screens - field config.xlsx"
+
+          Matrix report for "event information screen - field config.xlsx" execution order 60, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Event Information Screen                     7              70 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/event information screen - field config.xlsx"
+
+          Matrix report for "canned comments.xlsx" execution order 60, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Canned Comments                             62              63 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/canned comments.xlsx"
+
+          Matrix report for "membership screens - field config.xlsx" execution order 60, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Member Details                              23              22 
+Non Member Screen                          116             121 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/membership screens - field config.xlsx"
+
+          Matrix report for "special situation" execution order 60, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Configuration                                0               0               0               0               0               0 
+Lists                                        9               9               9               9              15               9 
+Special Situation                           55               1              13               1             265               1 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/event creation/special situation - aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/event creation/special situation - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/event creation/special situation - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/event creation/special situation - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/event creation/special situation - ract.xlsx"
+
+          Matrix report for "advised event canned comments.xlsx" execution order 61, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Advised Event Canned Comment                22              20 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/advised event canned comments.xlsx"
+
+
+          Matrix report for "supp info pick lists.xlsx" execution order 62, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Battery Wont start                          24              24 
+Caravan Trailer Towing                      28              28 
+Child Locked in Car                          8               8 
+Cooling System                              12              12 
+Fleet NAP                                   22              22 
+JOS                                         10              10 
+Lockout                                      7               7 
+MR - Payments Received                       0               0 
+MR - Service Provider                        0               0 
+Sheet1                                       3               1 
+Supp Info Configuration                      2               4 
+Towing                                      24              24 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/supp info pick lists.xlsx"
+
+
+          Matrix report for "incident management - vehicle colour.xlsx" execution order 63, verification Hex
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Configuration                                0               0 
+IM Vehicle Colour                           18              18 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/incident management (inc nap)/incident management - vehicle colour.xlsx"
+
+          Matrix report for "message groups" execution order 64, verification Hex
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+msg_group                                    1               1               1              25               1               1 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/cross functional/message groups.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/cross functional/message groups.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/cross functional/message groups.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/cross functional/message groups.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/cross functional/message groups.xlsx"
+
+
+
+
+# -------------------------------------------- ETL ---------------------------------------
+# -------------------------------------------- ETL ---------------------------------------
+# -------------------------------------------- ETL ---------------------------------------
+# -------------------------------------------- ETL ---------------------------------------
+# -------------------------------------------- ETL ---------------------------------------
+
+
+
+
+          Matrix report for "esp alerts" execution order 46, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Alerts                                      20               4               8             144             153               0 
+Configuration Screens                        0               0               0               0               0               0 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/dispatch/esp alerts - aant.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/dispatch/esp alerts - raa.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/dispatch/esp alerts - rac.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/dispatch/esp alerts - racq.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/dispatch/esp alerts - ract.xlsx"
+
+# -------------------------------------------- the end -----------------------------------
+# -------------------------------------------- the end -----------------------------------
+# -------------------------------------------- the end -----------------------------------
+# -------------------------------------------- the end -----------------------------------
+# -------------------------------------------- the end -----------------------------------
+          Matrix report for "personnel" execution order 1, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+persl                                      165              64              11             320             676               5 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/personnel management/personnel.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/personnel management/personnel.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/personnel management/personnel.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/personnel management/personnel.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/personnel management/personnel.xlsx"
+
+          Matrix report for "personnel node access" execution order 2, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Sheet1                                       3               2               1               3               2               1 
+noden                                      160              53               0             313               5               0 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/cross functional/personnel node access.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/cross functional/personnel node access.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/cross functional/personnel node access.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/cross functional/personnel node access.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/cross functional/personnel node access.xlsx"
+
+
+          Matrix report for "eta table" execution order 7, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+ETA                                       3192            2016           12264           12263           12264           12264 
+Sheet1                                       2               2               2                               2               1 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/dispatch/eta table.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/dispatch/eta table.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/dispatch/eta table.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/dispatch/eta table.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/dispatch/eta table.xlsx"
+
+          Matrix report for "skills" execution order 47, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Sheet1                                       5               2               1               2               2               1 
+persl_skill                               1587             377               3            1027            2846               3 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/personnel management/skills.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/personnel management/skills.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/personnel management/skills.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/personnel management/skills.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/personnel management/skills.xlsx"
+
+          Matrix report for "term app access - call, disp, caddbm" execution order 3, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Sheet1                                       0                                                                                 
+app_access                                1428             420               4             288            1512               4 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/cross functional/term app access - call, disp, caddbm.xlsx"
+  FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/cross functional/term app access - call, disp, caddbm.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/cross functional/term app access - call, disp, caddbm.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/cross functional/term app access - call, disp, caddbm.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/cross functional/term app access - call, disp, caddbm.xlsx"
+
+          Matrix report for "term app access - inetveiwer" execution order 65, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+app_access                                 380              31               5             107             446               5 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/cross functional/term app access - inetveiwer.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/cross functional/term app access - inetveiwer.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/cross functional/term app access - inetveiwer.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/cross functional/term app access - inetveiwer.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/cross functional/term app access - inetveiwer.xlsx"
+
+          Matrix report for "term" execution order 1, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+term                                        15              19               3              86             119               3 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/cross functional/term.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/cross functional/term.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/cross functional/term.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/cross functional/term.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/cross functional/term.xlsx"
+
+          Matrix report for "unit agency restriction" execution order 999, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+def_unit_restr_ag_avail                     69              30              12              57            1020               0 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/personnel management/unit agency restriction.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/personnel management/unit agency restriction.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/personnel management/unit agency restriction.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/personnel management/unit agency restriction.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/personnel management/unit agency restriction.xlsx"
+
+          Matrix report for "units" execution order 12, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Sheet1                                       8               3                               2               3               1 
+Unit XY                                                                                    148                                 
+def_unit                                   215             183              23             185            1020               4 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/personnel management/units.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/personnel management/units.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/personnel management/units.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/personnel management/units.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/personnel management/units.xlsx"
+
+          Matrix report for "vehicle equipment" execution order 48, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Vehicle Equipment                          376             418               0             124               0               0 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/dispatch/vehicle equipment.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/dispatch/vehicle equipment.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/dispatch/vehicle equipment.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/dispatch/vehicle equipment.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/dispatch/vehicle equipment.xlsx"
+
+          Matrix report for "vehicles" execution order 11, verification ETL
+Tab                                        raa            ract            aant             rac            racq          master 
+------------------------------ --------------- --------------- --------------- --------------- --------------- --------------- 
+Sheet1                                       6               2               1               2               2               1 
+def_vehic                                  126              33               3             183             718               3 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/personnel management/vehicles.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/personnel management/vehicles.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/personnel management/vehicles.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/personnel management/vehicles.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/personnel management/vehicles.xlsx"
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/aant/dispatch/crib locations - aant.xlsx"
+
+          Matrix report for "incident management - nap.xlsx" execution order 16-27, verification HEX
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+1.Club                                       1               1 
+10. Media Templates                          2               2 
+2.Programs                                  61              61 
+3.Product                                  104             104 
+4.Benefits                                  23              23 
+5.Benefit Questions                        120             120 
+6. Benefit Rules                            26              26 
+6.Associate Benefits                        21              21 
+7.Incident Questions                        19              19 
+8. Add New Incident Supplier                 4               4 
+9. Automatic Incidents                      36              36 
+Configuration steps                          9               9 
+Lists                                       34              34 
+Version control                             14              14 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/nap/incident management/incident management - nap.xlsx"
+
+         Matrix report for "crib locations - raa.xlsx" NO MATCHING DATA for name crib locations - raa
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+CRIB Schema                                 12              12 
+Configuration                                0               0 
+List                                         2               2 
+Lookup                                       6               6 
+RAA Crib Locations                         204             196 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/raa/dispatch/crib locations - raa.xlsx"
+
+          Matrix report for "crib locations - rac.xlsx" NO MATCHING DATA for name crib locations - rac
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+CRIB Schema                                 12              12 
+Configuration                                0               0 
+List                                         2               2 
+Lookup                                       6               6 
+RAC Crib Locations                         553             688 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/rac/dispatch/crib locations - rac.xlsx"
+
+          Matrix report for "crib locations - racq.xlsx" NO MATCHING DATA for name crib locations - racq
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+CRIB Schema                                 12              12 
+Configuration                                0               0 
+List                                         2               2 
+Lookup                                       6               6 
+RACQ Crib Locations                        884             503 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/racq/dispatch/crib locations - racq.xlsx"
+
+          Matrix report for "crib locations - ract.xlsx" NO MATCHING DATA for name crib locations - ract
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+CRIB Schema                                 12              12 
+Configuration                                0               0 
+List                                         2               2 
+Lookup                                       6               6 
+RACT Crib Locations                         46              44 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/data templates by club/ract/dispatch/crib locations - ract.xlsx"
+
+          Matrix report for "out of service codes.xlsx" execution order 9, verification ETL
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+out_of_service_type                         25              24 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/dispatch/out of service codes.xlsx"
+
+          Matrix report for "out of service type agency.xlsx" execution order 9, verification ETL
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+out_of_service_type_agency                  29              27 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/dispatch/out of service type agency.xlsx"
+
+          Matrix report for "disposition codes.xlsx" execution order 4, verification ETL
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Sheet1                                       2               1 
+disposition_type                           530             506 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event completion/disposition codes.xlsx"
+
+          Matrix report for "event types and sub-types.xlsx" execution order 3, verification ETL
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Event Type and Sub Type Fields               1               1 
+Event Types and Sub Types Data             457             158 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/event creation/event types and sub-types.xlsx"
+
+          Matrix report for "membership pricing level (surefire).xlsx" execution order 15, verification ETL
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+ras_mem_pricing-lev                       1517            1517 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/stock movement management (surefire)/membership pricing level (surefire).xlsx"
+
+
+
+
+
+
+
+
+          Matrix report for "battery management.xlsx" NO MATCHING DATA for name battery management
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+Battery Management                         145               0 
+Lists                                        5               5 
+
+   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/stock movement management (surefire)/battery management.xlsx"
+
+          Matrix report for "crib locations - aant.xlsx" NO MATCHING DATA for name crib locations - aant
+Tab                                     common          master 
+------------------------------ --------------- --------------- 
+AANT Crib Locations                          0               0 
+CRIB Schema                                 12              12 
+Configuration                                0               0 
+List                                         2               2 
+Lookup                                       6               6 
+
+

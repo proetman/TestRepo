@@ -466,9 +466,16 @@ def cleanup_ss(p_dict):
         log_debug('    empty dict, returning')
         return
 
-    for tab in ('Version History', 'Configuration', 'Configuration Screens'):
-        if tab in p_dict:
-            del p_dict[tab]
+    for tab in ('Version History',
+                'Configuration',
+                'Database Schema',
+                'Configuration Screens'):
+        l_tab = tab.upper()
+        l_keys = list(p_dict.keys())
+
+        for key in l_keys:
+            if l_tab == key.upper():
+                del p_dict[key]
 
     return
 

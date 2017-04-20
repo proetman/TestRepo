@@ -1154,12 +1154,12 @@ def validate_master_common_files(p_files, p_club_files):
 #
 
 
-def initialise(p_filename):
+def initialise():
     """
     Necessary initialisations for command line arguments
     """
     # Logfile for logging
-    log_filename = alib.log_filename_init(p_filename)
+    log_filename = alib.log_filename_init()
     if log_filename is None:
         print("\nError: Failed to initialise Log File Name. aborting\n")
         return alib.FAIL_GENERIC
@@ -1226,7 +1226,7 @@ def main():
     all agree with each other
     """
 
-    args, dummy_l_log_filename_s = initialise('validate_stage_3')
+    args, dummy_l_log_filename_s = initialise()
 
     # -- Initialise
     if not alib.init_app(args):

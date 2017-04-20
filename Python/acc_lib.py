@@ -117,6 +117,7 @@ MAIL_FROM_USER = 'noreply@racq.com.au'
 #
 # --------------------------------------------------------------------
 
+
 def tsv_create_dir():
 
     # Target TSV directory
@@ -489,7 +490,8 @@ def cleanup_ss(p_dict):
 def open_ss(p_ss):
     """ open spreadhseet, save as df """
     log_debug('Open spreadsheet {}'.format(p_ss))
-
+    # TO DO remove this
+    # return(None)
     if p_ss is None:
         return None
 
@@ -549,6 +551,21 @@ def club_specific_file(p_filename):
 
 def load_tags(p_work_dict):
     """  Tag files that are 1 per club """
+    # -------------------------------------
+    # -------------------------------------
+    def match_tag(p_short_name):
+        """ match file name to tag """
+        l_c_file = p_short_name.split('/')[-1]
+        for l_tag in OTHER_TAGS:
+            l_tag_str = l_tag
+            len_tag = len(l_tag_str)
+            test_str = l_c_file[:len_tag]
+
+            if l_tag_str == test_str:
+                return l_tag
+        return None
+    # -------------------------------------
+    # -------------------------------------
 
     for key, value in p_work_dict.items():
 
@@ -556,15 +573,10 @@ def load_tags(p_work_dict):
         if l_dir in CLUB_LIST:
             value['club'] = l_dir
 
-        l_c_short_name = value['club_file_short']
-        for l_tag in OTHER_TAGS:
-            l_tag_str = '/' + l_tag + '.xlsx'
-            len_tag = len(l_tag_str)
-            test_str = l_c_short_name[-len_tag:]
-
-            if l_tag_str == test_str:
-                value['tag'] = l_tag
-                continue
+        l_tag = match_tag(value['club_file_short'])
+        if l_tag is not None:
+            value['tag'] = l_tag
+            continue
 
     print('NOW PROCESS CLUB TAGS')
     for key, value in p_work_dict.items():
@@ -589,12 +601,19 @@ def load_tags(p_work_dict):
                 value['tag'] = l_tag
                 continue
 
+    p_e('Now display files with no TAGS')
+    for key, value in p_work_dict.items():
+        if value['tag'] is not None:
+            continue
+        l_c_short_name = value['club_file_short']
+        p_e('ERROR - club file with no tag: {}'.format(l_c_short_name))
 
 # --------------------------------------------------------------------
 #
 #                          lower case list
 #
 # --------------------------------------------------------------------
+
 
 def load_lower_case(p_list):
     """convert list to all lower case """

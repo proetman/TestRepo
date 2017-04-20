@@ -283,17 +283,23 @@ def vmfg_report(p_tag, p_rep_list):
     err_txt3 = '        file2 tabs: [{vT}]'
 
     for club in CLUB_LIST:
+        printed = False
         if club not in p_rep_list:
-            alib.p_e('Club file not found for file group "{}"'.format(p_tag))
+            alib.p_e('Club file not found for file group "{}" - club "{}"'.format(p_tag, club))
+            printed = True
+
+        if printed:
+            alib.p_i('')
 
     prev_keys = None
 
     for key, value in p_rep_list.items():
         if 'master_ss' in value:
             l_m_ss = value['master_ss']
-            l_m_keys = l_m_ss.keys()
-            l_new_keys = vmfg_replace_club(l_m_keys)
-            l_new_keys.sort()
+            if l_m_ss is not None:
+                l_m_keys = l_m_ss.keys()
+                l_new_keys = vmfg_replace_club(l_m_keys)
+                l_new_keys.sort()
 
         l_name = value['club_file_short']
         l_c_ss = value['club_ss']
@@ -332,6 +338,7 @@ def validate_multi_file_groups(p_work_dict):
     """ Validate the groups of files """
 
     for l_tag in CLUB_TAGS:
+        # print('club tag: {}'.format(l_tag))
         rep_list = {}
         for key, value in p_work_dict.items():
             if value['tag'] == l_tag:
@@ -341,6 +348,9 @@ def validate_multi_file_groups(p_work_dict):
         vmfg_report(l_tag, rep_list)
 
     for l_tag in OTHER_TAGS:
+        # print('other tag: {}'.format(l_tag))
+        if l_tag == 'crib locations':
+            x = 1
         rep_list = {}
         for key, value in p_work_dict.items():
             if value['tag'] == l_tag:
@@ -475,12 +485,12 @@ def validate_master_files(p_work_files, p_work_dict):
 # --------------------------------------------------------------------
 
 
-def initialise(p_filename):
+def initialise():
     """
     Necessary initialisations for command line arguments
     """
     # Logfile for logging
-    log_filename = alib.log_filename_init(p_filename)
+    log_filename = alib.log_filename_init()
     if log_filename is None:
         print("\nError: Failed to initialise Log File Name. aborting\n")
         return alib.FAIL_GENERIC
@@ -553,7 +563,7 @@ def main():
     all agree with each other
     """
 
-    args, dummy_l_log_filename_s = initialise('validate_ss')
+    args, dummy_l_log_filename_s = initialise()
 
     # -- Initialise
     if not alib.init_app(args):

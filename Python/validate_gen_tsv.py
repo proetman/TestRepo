@@ -9,21 +9,20 @@ from __future__ import print_function
 
 # Import OS Functions
 import argparse
+import datetime
+import math
 import os
 # import decimal
 import re
 # import textwrap
 # import time
 # import math
+
 import numpy as np
 import pandas as pd
 
-# Import racq library for RedShift
+import acc_lib as alib
 
-# import acc_lib as alib
-# import racq_sendmail as rqmail
-
-# import racq_syst_conn_lib as rqsconnlib
 
 # --------------------------------------------------------------------
 #
@@ -35,6 +34,134 @@ CLUB_LIST = alib.CLUB_LIST
 CLUB_TAGS = alib.CLUB_TAGS
 OTHER_TAGS = alib.OTHER_TAGS
 
+# Data
+#         file_dict['club_file_short'] = file
+#        file_dict['club_file_full'] = p_work_files['c'][counter]
+#        file_dict['type'] = 'club'
+#        file_dict['tag'] = 'cti numbers & scripts'
+#        file_dict['club'] = 'ract'
+#        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
+#
+#        file_dict['master_file_short'] = l_short_m_name
+#        file_dict['master_file_full'] = l_m_file
+#        file_dict['master_ss'] = open_ss(l_m_file)
+
+
+# --------------------------------------------------------------------
+#
+#                          tsv - validate
+#
+# --------------------------------------------------------------------
+
+def tsvg_validate(p_file):
+    """ Verify count of tabs on every line in the file is the same """
+    with open(p_file, "r") as l_file_ptr:
+        content = l_file_ptr.readlines()
+
+    tab_count = None
+    line_count = 0
+    for line in content:
+        line_count += 1
+        new_tab_count = line.count('\t')
+        if tab_count is None:
+            tab_count = new_tab_count
+        else:
+            if tab_count != new_tab_count:
+                alib.p_e('file: {} incorrect tab count lineno {}; prev {}, curr {}'.
+                         format(p_file, line_count, tab_count, new_tab_count))
+                tab_count = new_tab_count
+
+
+# --------------------------------------------------------------------
+#
+#                          tsv - fetch target filename
+#
+# --------------------------------------------------------------------
+
+
+def tsvg_fetch_target_name(p_tsv_dir, p_curr_file, p_tab):
+    """
+    calculate the target filename
+    """
+    alib.log_debug('Start tsvg fetch target name')
+    l_filename = p_tsv_dir
+    l_filename += '/'
+
+    # remove .xlsx
+    l_filename += ''.join(p_curr_file.split('.')[:-1])
+
+    l_tab = p_tab.replace('.', '__').upper()
+    l_tab = l_tab.replace(' ', '_').upper()
+    l_tab = l_tab.replace('"', '_').upper()
+    l_tab = l_tab.replace("'", '_').upper()
+
+    l_filename += '__' + l_tab + '.tsv'
+
+    alib.log_debug('End tsvg fetch target name, filename = {}'.format(l_filename))
+
+    return l_filename
+
+
+
+# ------------------------------------------------------------------------------------------
+#
+#                                       PRE PROCESS source
+#
+# ------------------------------------------------------------------------------------------
+
+
+def tgsv_pre_process(p_df):
+    """
+    Remove non-ascii characters from any column that is of type str
+
+    Parameters
+    ----------
+    p_df: panda dataframe
+         data frame
+
+    Returns
+    -------
+    res: boolean
+      success or fail
+
+    Example
+    -------
+    >>> pre_process(my_src_df)
+    True
+
+    """
+    def clean_text(p_field):
+        """
+        Lambda function to replace characters that bryte cannot tolerate
+        """
+        dodgy_char = '\r'
+        dodgy_char2 = '\n'
+
+        if(p_field is None or
+           isinstance(p_field, datetime.date) or
+           not isinstance(p_field, str)):
+            new_field = p_field
+        else:
+
+            new_field = re.sub(dodgy_char, " ", p_field)
+            new_field = re.sub(dodgy_char2, " ", new_field)
+
+            # new_field = re.sub('[^ -~]', ' ', new_field)
+
+            # remove trailing spaces
+            new_field = re.sub(' *$', '', new_field)
+
+        return new_field
+
+    # start_str = 'Start pre_process size of p_df = [{}]'
+    # rqlib.log_debug(start_str.format(len(p_df.index)))
+    str_col = p_df.select_dtypes(include=['object'])
+    for col in str_col.columns:
+        p_df[col] = p_df[col].apply(lambda x: clean_text(x))
+
+    return
+
+
 # --------------------------------------------------------------------
 #
 #                          analyse shallow
@@ -42,18 +169,112 @@ OTHER_TAGS = alib.OTHER_TAGS
 # --------------------------------------------------------------------
 
 
-def generate_tsv(p_work_dict, p_priority_df):
+def tsvg_validate_col_headings(p_df):
+    """
+    validate col heading is not Nan
+    """
+    new_col = 'column_heading_'
+    new_col_ctr = 1
+    col_headings = p_df.columns
+    new_col_headings = []
+
+    for col in col_headings:
+        if isinstance(col, str):
+            col = col.replace('\r', ' ')
+            col = col.replace('\n', ' ')
+            new_col_headings.append(col)
+        else:
+            if math.isnan(col):
+                new_col_headings.append('{}{}'.format(new_col, new_col_ctr))
+                new_col_ctr += 1
+
+    alib.log_debug('Col Headings : {}'.format(col_headings))
+    alib.log_debug('Mod Headings : {}'.format(new_col_headings))
+    p_df.columns = new_col_headings
+
+# --------------------------------------------------------------------
+#
+#                          analyse shallow
+#
+# --------------------------------------------------------------------
+
+
+def tsv_generate(p_work_dict, p_priority_df, p_tsv_dir):
     """
     Perform some quick and dirty analsys on the files
     """
-    # Loop through the tags, for each tag
-    #     loop through all files. If the tag matches
-    #         add result to new list (rep_list)
-    l_filename = "c:/test_results/data/report_analyse_shallow.txt"
+    alib.log_debug('start tsv generate')
+
+    l_filename = "c:/test_results/data/generate_tsv_report.txt"
     with open(l_filename, "w+") as l_file_ptr:
-        pass
 
+        for key, value in p_work_dict.items():
+            curr_file = value['club_file_short'].split('/')[-1]
+            if curr_file is None:
+                print('curr file none: derived from {}'.format(value['club_file_short']))
+                curr_file = 'was_none'
 
+            l_tag = value['tag']
+            if l_tag is None:
+                l_tag = ''
+
+            l_file_ptr.write('club file: {:30} - {}\n'.format(l_tag, curr_file))
+
+            l_ss = value['club_ss']
+            if l_ss is None:
+                continue
+
+            alib.cleanup_ss(l_ss)
+
+            for key, value in l_ss.items():
+                # Now have a single tab from the spreadsheet as a dataframe
+                l_tab_df = value
+                l_tab_key = key
+                l_file_ptr.write('    tab: {}\n'.format(l_tab_key))
+
+                # if this TAB has any data on it
+                if len(l_tab_df.index) > 1:
+
+                    tsvg_validate_col_headings(l_tab_df)
+
+                    l_target_filename = tsvg_fetch_target_name(p_tsv_dir, curr_file, l_tab_key)
+
+                    l_file_ptr.write('    out: {}\n'.format(l_target_filename))
+
+                    alib.log_debug('    Write to file {}'.format(l_target_filename))
+                    alib.log_debug('    number of lines {}'.format(len(l_tab_df.index)))
+
+                    # remove dodgy characters
+                    print(curr_file)
+#                    if curr_file == 'external service supplier_rac.xlsx':
+#                        print('key = {}'.format(key))
+#                        if key == 'Rates Country':
+#                            x = 1
+                    tgsv_pre_process(l_tab_df)
+                    l_tab_df.to_csv(l_target_filename,
+                                    sep='\t',
+                                    index=False,
+                                    date_format='%d-%m-%Y  %H:%M:%S')
+
+                    tsvg_validate(l_target_filename)
+
+    alib.log_debug('end tsv generate')
+
+# --------------------------------------------------------------------
+#
+#                          create dir
+#
+# --------------------------------------------------------------------
+
+def tsv_create_dir():
+
+    # Target TSV directory
+    data_dir = TEST_RESULT_DIRS['data']
+    tsv_dir = data_dir + '/' + 'tsv_files'
+    if alib.dir_create(tsv_dir):
+        alib.p_e('Unable to create directory for TSV files, aborting')
+        return False
+    return True
 # --- Program Init
 # --------------------------------------------------------------------
 #
@@ -141,7 +362,7 @@ def main():
     all agree with each other
     """
 
-    args, dummy_l_log_filename_s = initialise('validate_stage_3')
+    args, dummy_l_log_filename_s = initialise('validate_gen_tsv')
 
     # -- Initialise
     if not alib.init_app(args):
@@ -157,16 +378,20 @@ def main():
     priority_list_df.columns = ['FUNCTION', 'NAME', 'EXEC_ORDER', 'LOAD_METHOD', 'HEX ETL']
     priority_list_df['NAME'] = priority_list_df['NAME'].str.lower()
 
+    tsv_dir = alib.tsv_create_dir()
+    if tsv_dir is None:
+        alib.p_e('no tsv dir, aborting')
+        return alib.FAIL_GENERIC
+
     work_dir = alib.load_dir(args)
-    work_files = alib.load_files(work_dir)
+    print('Loading files from {}'.format(work_dir['l_c_dir']))
+    work_files = alib.load_files(work_dir, args['quick_debug'])
 
     work_dict = alib.load_matching_masterfile(work_files)
-
     alib.load_tags(work_dict)
-
     alib.print_filenames(work_dict)
 
-    generate_tsv(work_dict, priority_list_df)
+    tsv_generate(work_dict, priority_list_df, tsv_dir)
 
     alib.p_i('Done...')
 

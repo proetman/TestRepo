@@ -111,7 +111,21 @@ MAIL_FOOTER = """\
 """
 
 MAIL_FROM_USER = 'noreply@racq.com.au'
+# --------------------------------------------------------------------
+#
+#                          create dir
+#
+# --------------------------------------------------------------------
 
+def tsv_create_dir():
+
+    # Target TSV directory
+    data_dir = TEST_RESULT_DIRS['data']
+    tsv_dir = data_dir + '/' + 'tsv_files'
+    if not dir_create(tsv_dir):
+        p_e('Unable to create directory for TSV files, aborting')
+        return None
+    return tsv_dir
 # --- Compare
 # --------------------------------------------------------------------
 #
@@ -414,13 +428,13 @@ def tab_compare_log_diff(p_pd1, p_pd2, p_tab):
 # --------------------------------------------------------------------
 
 
-def print_filenames(p_work_files):
+def print_filenames(p_work_dict):
     """ Print all the short names of the club files """
 
     p_i('')
     p_i('{:30} {:40} {:10}'.format('Tag', 'File', 'Club'))
     p_i('{:30} {:40} {:10}'.format(30 * '-', 40 * '-', 10 * '-'))
-    for key, value in p_work_files.items():
+    for key, value in p_work_dict.items():
         curr_file = value['club_file_short'].split('/')[-1]
         curr_club = value['club']
 
@@ -439,7 +453,28 @@ def print_filenames(p_work_files):
 # --- file operations
 # --------------------------------------------------------------------
 #
-#                          initialise
+#                          cleanup
+#
+# --------------------------------------------------------------------
+
+
+def cleanup_ss(p_dict):
+    """ cleanup tabs not comparing """
+    log_debug('start cleanup')
+
+    if p_dict is None:
+        log_debug('    empty dict, returning')
+        return
+
+    for tab in ('Version History', 'Configuration', 'Configuration Screens'):
+        if tab in p_dict:
+            del p_dict[tab]
+
+    return
+
+# --------------------------------------------------------------------
+#
+#                          open ss
 #
 # --------------------------------------------------------------------
 
@@ -1128,7 +1163,7 @@ def init_app(p_args, p_print_date=True):
 
     if p_print_date:
         # Display the run date, this will end up in the .out files to delimit each days run.
-        run_datetime = time.strftime("%d-%M-%Y %H:%M:%S")
+        run_datetime = time.strftime("%d-%m-%Y %H:%M:%S")
         p_i('Run Date: {}'.format(run_datetime))
 
     return True

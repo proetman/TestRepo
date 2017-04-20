@@ -354,27 +354,6 @@ def validate_multi_file_groups(p_work_dict):
 # --- val club file
 # --------------------------------------------------------------------
 #
-#                          cleanup
-#
-# --------------------------------------------------------------------
-
-
-def vcf_cleanup_ss(p_dict):
-    """ cleanup tabs not comparing """
-    alib.log_debug('start cleanup')
-
-    if p_dict is None:
-        alib.log_debug('    empty dict, returning none')
-        return
-
-    for tab in ('Version History', 'Configuration', 'Configuration Screens'):
-        if tab in p_dict:
-            del p_dict[tab]
-
-    return
-
-# --------------------------------------------------------------------
-#
 #                          validate club
 #
 # --------------------------------------------------------------------
@@ -412,8 +391,8 @@ def validate_club_file(p_work_dict):
             continue
 
         # Tidy up dict.
-        vcf_cleanup_ss(ss_df)
-        vcf_cleanup_ss(m_df)
+        alib.cleanup_ss(ss_df)
+        alib.cleanup_ss(m_df)
 
         if ss_df is not None:
             validate_special_char(ss_df)

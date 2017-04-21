@@ -247,7 +247,7 @@ def tsv_generate(p_list, p_tsv_dir):
             short_name = '/'.join(f.split('/')[-4:])
         print(short_name)
 
-        l_ss = alib.open_ss(f)
+        l_ss = alib.open_ss2(f)
 
         if l_ss is None:
             alib.p_e('Failed to open file {}'.format(f))

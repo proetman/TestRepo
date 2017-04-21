@@ -829,7 +829,7 @@ def load_matching_masterfile(p_work_files):
         file_dict['type'] = 'club'
         file_dict['tag'] = None
         file_dict['club'] = None
-        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
+        file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
 
         work_dict[file] = (file_dict)
         counter += 1
@@ -843,7 +843,7 @@ def load_matching_masterfile(p_work_files):
         file_dict['type'] = 'club common'
         file_dict['tag'] = None
         file_dict['club'] = None
-        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
+        file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
 
         work_dict[file] = (file_dict)
         counter += 1

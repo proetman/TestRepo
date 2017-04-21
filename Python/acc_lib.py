@@ -487,6 +487,103 @@ def cleanup_ss(p_dict):
 # --------------------------------------------------------------------
 
 
+def open_ss2(p_ss):
+    """ open spreadhseet, save as df """
+    # ------------------------------------------------
+    def get_sheets(p_file):
+        """ get list of all sheets for this spreadsheet """
+
+        l_dir, l_file = os.path.split(p_file)
+        l_file_short = l_file.split('.xlsx')[0] + '__'
+        l_file_short_len = len(l_file_short)
+
+        dict_of_files = []
+        for (dirpath, dummy_dirnames, filenames) in os.walk(l_dir):
+            for filename in filenames:
+                if l_file_short == filename[:l_file_short_len]:
+                    dict_of_files.append(os.sep.join([dirpath, filename]).replace('\\', '/'))
+
+        return dict_of_files
+
+    # ------------------------------------------------
+
+    def open_cache(p_file):
+
+        log_debug('          open from cache')
+        p_i('(cache) open file: [{}]'.format(p_file))
+
+        l_sheets_list = get_sheets(p_file)
+        l_df_dict = {}
+        for l_sheet in l_sheets_list:
+            l_dir, l_file = os.path.split(l_sheet)
+            sheet_name = l_file.split('__')[1]
+            l_ss_df = pd.read_hdf(l_sheet)
+            l_df_dict[sheet_name] = l_ss_df
+
+        return l_df_dict
+
+    # ------------------------------------------------
+
+    def open_disk(p_file, p_cache_loc):
+        log_debug('          open from disk')
+        p_i('(disk) open file: [{}]'.format(p_file))
+
+        l_df_dict = open_ss(p_file)
+
+        file_touch(p_cache_loc)
+
+        # remove file extension
+        cache_loc_short = cache_loc.split('.xlsx')[0]
+
+        for key, value in l_df_dict.items():
+            log_debug('                  save key: {}'.format(key))
+            cache_loc_key = cache_loc_short + '__' + key + '__.h5'
+            log_debug('                          : {}'.format(cache_loc_key))
+            l_ss_df = value
+            hdf = pd.HDFStore(cache_loc_key)
+            hdf.put('ic', l_ss_df)
+            hdf.close()
+
+        return l_df_dict
+    # ------------------------------------------------
+
+    log_debug('Open spreadsheet {}'.format(p_ss))
+    # TO DO remove this
+    # return(None)
+    if p_ss is None:
+        return None
+
+    l_ss = p_ss.replace('\\', '/')
+
+    # Where the cache will live
+    wd = TEST_RESULT_DIRS['data'] + '/h5_cache'
+
+    # remove the drive letter
+    log_debug('start open_ss2, file: {}'.format(l_ss))
+    short_name = '/'.join(p_ss.split(':')[1:])
+    log_debug('          short name:   {}'.format(short_name))
+    cache_loc = wd + short_name
+    log_debug('          cache loc : {}'.format(cache_loc))
+
+    dir_loc = os.path.dirname(cache_loc)
+    dir_create(dir_loc)
+
+    if os.path.isfile(cache_loc):
+        if os.path.getmtime(p_ss) > os.path.getmtime(cache_loc):
+            ss_df_dict = open_disk(p_ss, cache_loc)
+        else:
+            ss_df_dict = open_cache(cache_loc)
+    else:
+        ss_df_dict = open_disk(p_ss, cache_loc)
+
+    return ss_df_dict
+# --------------------------------------------------------------------
+#
+#                          open ss
+#
+# --------------------------------------------------------------------
+
+
 def open_ss(p_ss):
     """ open spreadhseet, save as df """
     log_debug('Open spreadsheet {}'.format(p_ss))
@@ -869,6 +966,7 @@ def load_dir(p_args):
     if 'all_dir' in p_args:
         if p_args['all_dir'] is not None:
             default_sync_dir = p_args['all_dir']
+            p_i('Processing files in directory: [{}]'.format(p_args['all_dir']))
 
     # -- club files
     default_club_dir = default_sync_dir + '/Data Templates by Club'
@@ -1163,6 +1261,29 @@ def odbc_sql_exec(p_conn, p_sql):
     return rowcount
 
 # --- Init
+# --------------------------------------------------------------------
+#
+#                          init (every program should run this)
+#
+# --------------------------------------------------------------------
+
+
+def validate_dir_param(p_dir):
+    """
+    validate directory parameter does not have back slash
+    validate trailing char is not forward slash.
+    """
+    log_debug('start valdate dir param [{}]'.format(p_dir))
+    l_dir = p_dir
+
+    l_dir = l_dir.replace('\\', '/')
+    last_char = l_dir[-1]
+    if last_char == '/':
+        l_dir = l_dir[:-1]
+
+    log_debug('end valdate dir param [{}]'.format(l_dir))
+    return l_dir
+
 # --------------------------------------------------------------------
 #
 #                          init (every program should run this)

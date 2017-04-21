@@ -548,6 +548,9 @@ def initialise():
     # Sort though the arguments, ensure mandatory are populated
     args = alib.args_validate(parser, log_filename)
 
+    if args['all_dir'] is not None:
+        args['all_dir'] = alib.validate_dir_param(args['all_dir'])
+
     return (args, log_filename)
 
 # --------------------------------------------------------------------

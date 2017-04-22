@@ -13,8 +13,10 @@ import argparse
 from openpyxl import Workbook
 from openpyxl import load_workbook
 
+import datetime
+import re
+
 # import decimal
-# import re
 # import textwrap
 # import time
 # import math
@@ -35,17 +37,90 @@ CLUB_LIST = alib.CLUB_LIST
 CLUB_TAGS = alib.CLUB_TAGS
 OTHER_TAGS = alib.OTHER_TAGS
 
-# Data
-#         file_dict['club_file_short'] = file
-#        file_dict['club_file_full'] = p_work_files['c'][counter]
-#        file_dict['type'] = 'club'
-#        file_dict['tag'] = 'cti numbers & scripts'
-#        file_dict['club'] = 'ract'
-#        file_dict['club_ss'] = open_ss(file_dict['club_file_full'])
+# ------------------------------------------------------------------------------------------
 #
-#        file_dict['master_file_short'] = l_short_m_name
-#        file_dict['master_file_full'] = l_m_file
-#        file_dict['master_ss'] = open_ss(l_m_file)
+#                                       PRE PROCESS source
+#
+# ------------------------------------------------------------------------------------------
+
+
+def clean_cell(p_cell):
+    """
+    Remove non-ascii characters from cell
+
+    Parameters
+    ----------
+    a cell value
+
+    Returns
+    -------
+    None if no change
+    modified value if there is a change
+
+    """
+    def clean_text(p_field):
+        """
+        Lambda function to replace characters that bryte cannot tolerate
+        """
+        dodgy_char = '’'
+        dodgy_char2 = '‘'
+        dodgy_char3 = '–'
+        dodgy_char4 = '”'
+        dodgy_char5 = '“'
+        dodgy_char6 = '…'
+        dodgy_char7 = '\r'
+        dodgy_char8 = '\n'
+        dodgy_char10 = '\t'
+        dodgy_char12 = '–'
+        dodgy_char15 = '‐'      # This is a different hyphon
+
+        dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii. Every field is terminated with it.
+        dodgy_char21 = '·'      # another bizarre hyphon
+        dodgy_char22 = '│'
+        dodgy_char23 = '√'
+
+        if(p_field is None or
+           isinstance(p_field, datetime.date) or
+           not isinstance(p_field, str)):
+            new_field = p_field
+        else:
+
+            new_field = re.sub(dodgy_char, "'", p_field)
+            new_field = re.sub(dodgy_char2, "'", new_field)
+            new_field = re.sub(dodgy_char3, "-", new_field)
+            new_field = re.sub(dodgy_char4, '"', new_field)
+            new_field = re.sub(dodgy_char5, '"', new_field)
+            new_field = re.sub(dodgy_char6, '.', new_field)
+            new_field = re.sub(dodgy_char7, ' ', new_field)
+            new_field = re.sub(dodgy_char8, ' ', new_field)
+            new_field = re.sub(dodgy_char10, ' ', new_field)
+            new_field = re.sub(dodgy_char12, '-', new_field)
+            new_field = re.sub(dodgy_char15, '-', new_field)
+
+            # new_field = re.sub(dodgy_char20, ' ', new_field)
+            new_field = re.sub(dodgy_char21, '-', new_field)
+            new_field = re.sub(dodgy_char22, '|', new_field)
+            new_field = re.sub(dodgy_char23, ' ', new_field)
+
+            new_field = re.sub('[^ -~]', ' ', new_field)
+
+             # remove trailing spaces
+            new_field = re.sub(' *$', '', new_field)
+
+        return new_field
+
+    result = clean_text(p_cell)
+
+    if result == p_cell:
+        return None
+    else:
+        print('before: {}'.format(p_cell))
+        print('after : {}'.format(result))
+        return result
+
+    return
+
+
 # --------------------------------------------------------------------
 #
 #                          create dir
@@ -63,7 +138,18 @@ def vh_files(p_list):
         sheet_names = wb.get_sheet_names()
 
         for sheet in sheet_names:
+            if sheet in ('Version History',
+                         'Configuration',
+                         'Database Schema',
+                         'Configuration Screens'):
+                continue
             ws = wb[sheet]
+            for row in ws.iter_rows():
+                for cell in row:
+                    res = clean_cell(cell.value)
+                    if res is None:
+                        continue
+                    # print(cell.value)
 
             if ws.sheet_state != 'visible':
 
@@ -87,10 +173,10 @@ def vh_files(p_list):
 def validate_hidden(p_files):
     """ find hidden sheets """
 
-    vh_files(p_files['c'])
+    # vh_files(p_files['c'])
     vh_files(p_files['cc'])
-    vh_files(p_files['m'])
-    vh_files(p_files['mc'])
+    # vh_files(p_files['m'])
+    # vh_files(p_files['mc'])
 
 # --- Program Init
 # --------------------------------------------------------------------

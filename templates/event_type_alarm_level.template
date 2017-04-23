@@ -1,0 +1,173 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#EvType_alTMP') IS NOT NULL
+DROP TABLE #EvType_alTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #EvType_alTMP
+    (
+	additional_events varchar(80),
+	ag_id varchar(9),
+	alarm_lev int,
+	fs_icode varchar(4),
+	fs_icodemessage varchar(50),
+	fs_rcode varchar(4),
+	fs_rcodemessage varchar(60),
+	intercadsend varchar(1),
+	msg varchar(80),
+	page_id varchar(12),
+	resp_plan_name varchar(50),
+	sub_tycod varchar(16),
+	tycod varchar(16)
+	
+    )
+
+
+BULK
+INSERT #EvType_alTMP 
+FROM '{vFmtDir}event_type_alarm_level.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}event_type_alarm_level.Fmt',
+FIRSTROW = 2
+);
+
+	Declare @Vadditional_events varchar(80)
+	Declare @Vag_id varchar(9)
+	Declare @Valarm_lev int
+	Declare @Vfs_icode varchar(4)
+	Declare @Vfs_icodemessage varchar(50)
+	Declare @Vfs_rcode varchar(4)
+	Declare @Vfs_rcodemessage varchar(60)
+	Declare @Vintercadsend varchar(1)
+	Declare @Vmsg varchar(80)
+	Declare @Vpage_id varchar(12)
+	Declare @Vresp_plan_name varchar(50)
+	Declare @Vsub_tycod varchar(16)
+	Declare @Vtycod varchar(16)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	additional_events,
+	ag_id,
+	alarm_lev,
+	fs_icode,
+	fs_icodemessage,
+	fs_rcode,
+	fs_rcodemessage,
+	intercadsend,
+	msg,
+	page_id,
+	resp_plan_name,
+	REPLACE(sub_tycod,' ',''),
+	REPLACE(tycod,' ','')
+
+FROM #EvType_alTMP
+--order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+	@Vadditional_events,
+	@Vag_id,
+	@Valarm_lev,
+	@Vfs_icode,
+	@Vfs_icodemessage,
+	@Vfs_rcode,
+	@Vfs_rcodemessage,
+	@Vintercadsend,
+	@Vmsg,
+	@Vpage_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vtycod + ' ' + @vsub_tycod
+
+insert into event_type_alarm_level(
+
+	additional_events,
+	ag_id,
+	alarm_lev,
+	fs_icode,
+	fs_icodemessage,
+	fs_rcode,
+	fs_rcodemessage,
+	intercadsend,
+	msg,
+	page_id,
+	resp_plan_name,
+	sub_tycod,
+	tycod
+
+)
+
+values (
+
+	@Vadditional_events,
+	@Vag_id,
+	@Valarm_lev,
+	@Vfs_icode,
+	@Vfs_icodemessage,
+	@Vfs_rcode,
+	@Vfs_rcodemessage,
+	@Vintercadsend,
+	@Vmsg,
+	@Vpage_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod + ' ' + @Vsub_tycod, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+
+	@Vadditional_events,
+	@Vag_id,
+	@Valarm_lev,
+	@Vfs_icode,
+	@Vfs_icodemessage,
+	@Vfs_rcode,
+	@Vfs_rcodemessage,
+	@Vintercadsend,
+	@Vmsg,
+	@Vpage_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod
+
+
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

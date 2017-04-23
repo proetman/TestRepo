@@ -1,0 +1,98 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#OOSATMP') IS NOT NULL
+DROP TABLE #OOSATMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #OOSATMP
+    (
+	ag_id varchar(9),
+	alert_timer int,
+	tycod varchar(16)
+    )
+
+
+BULK
+INSERT #OOSATMP 
+FROM '{vFmtDir}out_of_service_type_agency.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}out_of_service_type_agency.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vag_id varchar(9)
+Declare @Valert_timer int
+Declare @Vtycod varchar(16)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	alert_timer,
+	tycod
+
+FROM #OOSATMP
+order by tycod asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Valert_timer,
+@Vtycod
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vtycod
+
+insert into Upload_Test.dbo.out_of_service_type_agency(
+ag_id,
+alert_timer,
+tycod
+
+)
+
+values (
+@Vag_id,
+@Valert_timer,
+@Vtycod
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,	
+@Valert_timer,
+@Vtycod
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

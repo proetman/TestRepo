@@ -10,7 +10,7 @@ from __future__ import print_function
 # Import OS Functions
 import argparse
 
-from openpyxl import Workbook
+# from openpyxl import Workbook
 from openpyxl import load_workbook
 
 import datetime
@@ -21,8 +21,8 @@ import re
 # import time
 # import math
 
-#import numpy as np
-#import pandas as pd
+# import numpy as np
+# import pandas as pd
 
 import acc_lib as alib
 
@@ -44,7 +44,7 @@ OTHER_TAGS = alib.OTHER_TAGS
 # ------------------------------------------------------------------------------------------
 
 
-def clean_cell(p_cell):
+def clean_cell(p_cell, p_cell_location):
     """
     Remove non-ascii characters from cell
 
@@ -74,7 +74,9 @@ def clean_cell(p_cell):
         dodgy_char12 = '–'
         dodgy_char15 = '‐'      # This is a different hyphon
 
-        dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii. Every field is terminated with it.
+        # Every field is terminated with it.
+        dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii.
+
         dodgy_char21 = '·'      # another bizarre hyphon
         dodgy_char22 = '│'
         dodgy_char23 = '√'
@@ -97,14 +99,14 @@ def clean_cell(p_cell):
             new_field = re.sub(dodgy_char12, '-', new_field)
             new_field = re.sub(dodgy_char15, '-', new_field)
 
-            # new_field = re.sub(dodgy_char20, ' ', new_field)
+            new_field = re.sub(dodgy_char20, '', new_field)
             new_field = re.sub(dodgy_char21, '-', new_field)
             new_field = re.sub(dodgy_char22, '|', new_field)
             new_field = re.sub(dodgy_char23, ' ', new_field)
 
             new_field = re.sub('[^ -~]', ' ', new_field)
 
-             # remove trailing spaces
+            # remove trailing spaces
             new_field = re.sub(' *$', '', new_field)
 
         return new_field
@@ -114,8 +116,8 @@ def clean_cell(p_cell):
     if result == p_cell:
         return None
     else:
-        print('before: {}'.format(p_cell))
-        print('after : {}'.format(result))
+        # alib.log_info('        before: {}'.format(p_cell))
+        alib.log_info('        loc: {}, modified value : {}'.format(p_cell_location, result))
         return result
 
     return
@@ -131,37 +133,42 @@ def vh_files(p_list):
     """ find hidden sheets """
 
     for f in p_list:
-        print_filename = True
-
+        file_mod = False
         short_name = '/'.join(f.split('/')[-5:])
-        wb = load_workbook(filename = f.replace('/', '\\'))
+        alib.p_i('')
+        alib.p_i('Process file : {}'.format(short_name))
+
+        wb = load_workbook(filename=f.replace('/', '\\'))
         sheet_names = wb.get_sheet_names()
 
         for sheet in sheet_names:
+            ws = wb[sheet]
+
             if sheet in ('Version History',
                          'Configuration',
                          'Database Schema',
                          'Configuration Screens'):
+                alib.p_i('    Skip worksheet {}'.format(sheet))
                 continue
-            ws = wb[sheet]
-            for row in ws.iter_rows():
-                for cell in row:
-                    res = clean_cell(cell.value)
-                    if res is None:
-                        continue
-                    # print(cell.value)
 
             if ws.sheet_state != 'visible':
-
-                if print_filename:
-                    print_filename = False
-                    alib.p_i('')
-                    alib.p_i('Process file : {}'.format(short_name))
-
-                alib.p_e('    sheet: {}, state: {}'.format(sheet, ws.sheet_state))
-
-#        for s in sheet_ranges:
-#            print('    sheet: {}'.format(s))
+                alib.p_e('    Skip worksheet {}, not visible'.format(sheet))
+                continue
+            alib.p_i('    Process worksheet {}'.format(sheet))
+            for row in ws.iter_rows():
+                for cell in row:
+                    res = clean_cell(cell.value, cell.coordinate)
+                    if res is None:
+                        continue
+                    else:
+                        file_mod = True
+                        cell.value = res
+        if file_mod:
+            alib.p_i('    file modified')
+            new_filename = f.replace('.', '_mod.')
+            wb.save(filename=new_filename)
+        else:
+            alib.p_i('    file NOT modified')
 
 # --------------------------------------------------------------------
 #
@@ -173,7 +180,7 @@ def vh_files(p_list):
 def validate_hidden(p_files):
     """ find hidden sheets """
 
-    # vh_files(p_files['c'])
+    vh_files(p_files['c'])
     vh_files(p_files['cc'])
     # vh_files(p_files['m'])
     # vh_files(p_files['mc'])

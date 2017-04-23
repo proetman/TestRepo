@@ -1,0 +1,158 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#BBLTMP') IS NOT NULL
+DROP TABLE #BBLTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #BBLTMP
+    (
+	backup_beat varchar(7),
+	backup_order smallint,
+	cdts varchar(16),
+	curent varchar(1),
+	delete_id varbinary(16) NOT NULL CONSTRAINT [DF_DELETE_id] DEFAULT (0x00),
+	deplo_plan_name varchar(30),
+	esz_rec_id varchar(max),
+	min_units int,
+	recovery_unique_id varbinary(16),
+	udts varchar(16),
+	unique_id varbinary(16) NOT NULL CONSTRAINT [DF_unique_id]  DEFAULT (newid())
+    )
+
+
+BULK
+INSERT #BBLTMP 
+FROM '{vFmtDir}BackUp_Beats.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}BackUp_Beats.Fmt',
+FIRSTROW = 2
+);
+
+
+
+	Declare @backup_beat varchar(7)
+	Declare @backup_order smallint
+	Declare @cdts varchar(16)
+	Declare @curent varchar(1)
+	Declare @delete_id varbinary(16)
+	Declare @deplo_plan_name varchar(30)
+	Declare @esz_rec_id varchar(max)
+	Declare @min_units int
+	Declare @recovery_unique_id varbinary(16)
+	Declare @udts varchar(16)
+	Declare @unique_id varbinary(16)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	backup_beat,
+	backup_order,
+	cdts,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	esz_rec_id,
+	min_units,
+	recovery_unique_id,
+	udts,
+	unique_id
+
+FROM #BBLTMP
+--order by dgroup asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@backup_beat,
+@backup_order,
+@cdts,
+@curent,
+@delete_id,
+@deplo_plan_name,
+@esz_rec_id,
+@min_units,
+@recovery_unique_id,
+@udts,
+@unique_id
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @esz_rec_id
+
+insert into backup_beat_list(
+	backup_beat,
+	backup_order,
+	cdts,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	esz_rec_id,
+	min_units,
+	recovery_unique_id,
+	udts,
+	unique_id
+)
+
+values (
+@backup_beat,
+@backup_order,
+@cdts,
+@curent,
+@delete_id,
+@deplo_plan_name,
+convert(varbinary(16),@esz_rec_id,1),
+@min_units,
+@recovery_unique_id,
+@udts,
+@unique_id
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@esz_rec_id), ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@backup_beat,
+@backup_order,
+@cdts,
+@curent,
+@delete_id,
+@deplo_plan_name,
+@esz_rec_id,
+@min_units,
+@recovery_unique_id,
+@udts,
+@unique_id
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors
+
+
+--SELECT *FROM #BBLTMP
+--where 

@@ -1,0 +1,374 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#DEF_UnitTMP') IS NOT NULL
+DROP TABLE #DEF_UnitTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #DEF_UnitTMP
+    (
+	ag_id varchar(9),
+	bay varchar(3),
+	break_duration smallint,
+	break_earliest_time varchar(16),
+	break_latest_time varchar(16),
+	break_start_time varchar(16),
+	break_taken varchar(1),
+	dgroup varchar(5),
+	end_shift_loc_x int,
+	end_shift_loc_y int,
+	ext_unitattr varbinary(32) DEFAULT (0x0000000000000000000000000000000000000000000000000000000000000000),
+	hourly_cost_sp float(53),
+	lev3 varchar(7),
+	loc_comm varchar(40),
+	loc_x float(53),
+	loc_y float(53),
+	max_disp_assign_jobs smallint,
+	max_time_startpt int,
+	mdtgroup varchar(16),
+	overtime_cost float(53),
+	per_job_cost_sp float(53),
+	ras_group_id int,
+	ras_mealbreak_type varchar(5),
+	ras_supplier_id int,
+	require_cor varchar(1),
+	resp_stop varchar(1),
+	shared_crew varchar(1),
+	shift_overtime float(53),
+	start_shift_loc_x int,
+	start_shift_loc_y int,
+	station varchar(10),
+	symnum int,
+	travel_cost float(53),
+	type_avail smallint, 
+	ucust1 varchar(50),
+	ucust2 varchar(50),
+	ucust3 varchar(50),
+	ucust4 varchar(50),
+	unid varchar(10),
+	unit_status smallint,
+	unityp varchar(6),
+	wait_cost float(53)
+
+    )
+
+
+BULK
+INSERT #DEF_UnitTMP 
+FROM '{vFmtDir}Def_Unit.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}Def_Unit.Fmt',
+FIRSTROW = 2
+);
+
+Declare @Vag_id varchar(9)
+Declare @Vbay varchar(3)
+Declare @Vbreak_duration smallint
+Declare @Vbreak_earliest_time varchar(16)
+Declare @Vbreak_latest_time varchar(16)
+Declare @Vbreak_start_time varchar(16)
+Declare @Vbreak_taken varchar(1)
+Declare @Vdgroup varchar(5)
+Declare @Vend_shift_loc_x int
+Declare @Vend_shift_loc_y int
+Declare @Vext_unitattr varbinary(32)
+Declare @Vhourly_cost_sp float(53)
+Declare @Vlev3 varchar(7)
+Declare @Vloc_comm varchar(40)
+Declare @Vloc_x float(53)
+Declare @Vloc_y float(53)
+Declare @Vmax_disp_assign_jobs smallint
+Declare @Vmax_time_startpt int
+Declare @Vmdtgroup varchar(16)
+Declare @Vovertime_cost float(53)
+Declare @Vper_job_cost_sp float(53)
+Declare @Vras_group_id int
+Declare @Vras_mealbreak_type varchar(5)
+Declare @Vras_supplier_id int
+Declare @Vrequire_cor varchar(1)
+Declare @Vresp_stop varchar(1)
+Declare @Vshared_crew varchar(1)
+Declare @Vshift_overtime float(53)
+Declare @Vstart_shift_loc_x int
+Declare @Vstart_shift_loc_y int
+Declare @Vstation varchar(10)
+Declare @Vsymnum int
+Declare @Vtravel_cost float(53)
+Declare @Vtype_avail smallint 
+Declare @Vucust1 varchar(50)
+Declare @Vucust2 varchar(50)
+Declare @Vucust3 varchar(50)
+Declare @Vucust4 varchar(50)
+Declare @Vunid varchar(10)
+Declare @Vunit_status smallint
+Declare @Vunityp varchar(6)
+Declare @Vwait_cost float(53)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+
+ag_id,
+bay,
+break_duration,
+break_earliest_time,
+break_latest_time,
+break_start_time,
+break_taken,
+dgroup,
+end_shift_loc_x,
+end_shift_loc_y,
+ext_unitattr,
+hourly_cost_sp,
+lev3,
+loc_comm,
+loc_x,
+loc_y,
+max_disp_assign_jobs,
+max_time_startpt,
+mdtgroup,
+overtime_cost,
+per_job_cost_sp,
+ras_group_id,
+ras_mealbreak_type,
+ras_supplier_id,
+require_cor,
+resp_stop,
+shared_crew,
+shift_overtime,
+start_shift_loc_x,
+start_shift_loc_y,
+station,
+symnum,
+travel_cost,
+type_avail,
+ucust1,
+ucust2,
+ucust3,
+ucust4,
+unid,
+unit_status,
+unityp,
+wait_cost
+
+FROM #DEF_UnitTMP
+--order by unid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vbay,
+@Vbreak_duration,
+@Vbreak_earliest_time,
+@Vbreak_latest_time,
+@Vbreak_start_time,
+@Vbreak_taken,
+@Vdgroup,
+@Vend_shift_loc_x,
+@Vend_shift_loc_y,
+@Vext_unitattr,
+@Vhourly_cost_sp,
+@Vlev3,
+@Vloc_comm,
+@Vloc_x,
+@Vloc_y,
+@Vmax_disp_assign_jobs,
+@Vmax_time_startpt,
+@Vmdtgroup,
+@Vovertime_cost,
+@Vper_job_cost_sp,
+@Vras_group_id,
+@Vras_mealbreak_type,
+@Vras_supplier_id,
+@Vrequire_cor,
+@Vresp_stop,
+@Vshared_crew,
+@Vshift_overtime,
+@Vstart_shift_loc_x,
+@Vstart_shift_loc_y,
+@Vstation,
+@Vsymnum,
+@Vtravel_cost,
+@Vtype_avail,
+@Vucust1,
+@Vucust2,
+@Vucust3,
+@Vucust4,
+@Vunid,
+@Vunit_status,
+@Vunityp,
+@Vwait_cost
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+
+print @Vunid	
+
+insert into def_unit(
+ag_id,
+bay,
+break_duration,
+break_earliest_time,
+break_latest_time,
+break_start_time,
+break_taken,
+dgroup,
+end_shift_loc_x,
+end_shift_loc_y,
+ext_unitattr,
+hourly_cost_sp,
+lev3,
+loc_comm,
+loc_x,
+loc_y,
+max_disp_assign_jobs,
+max_time_startpt,
+mdtgroup,
+overtime_cost,
+per_job_cost_sp,
+ras_group_id,
+ras_mealbreak_type,
+ras_supplier_id,
+require_cor,
+resp_stop,
+shared_crew,
+shift_overtime,
+start_shift_loc_x,
+start_shift_loc_y,
+station,
+symnum,
+travel_cost,
+type_avail,
+ucust1,
+ucust2,
+ucust3,
+ucust4,
+unid,
+unit_status,
+unityp,
+wait_cost
+
+
+)
+
+values (
+@Vag_id,
+@Vbay,
+@Vbreak_duration,
+@Vbreak_earliest_time,
+@Vbreak_latest_time,
+@Vbreak_start_time,
+@Vbreak_taken,
+@Vdgroup,
+@Vend_shift_loc_x,
+@Vend_shift_loc_y,
+@Vext_unitattr,
+@Vhourly_cost_sp,
+@Vlev3,
+@Vloc_comm,
+@Vloc_x,
+@Vloc_y,
+@Vmax_disp_assign_jobs,
+@Vmax_time_startpt,
+@Vmdtgroup,
+@Vovertime_cost,
+@Vper_job_cost_sp,
+@Vras_group_id,
+@Vras_mealbreak_type,
+@Vras_supplier_id,
+@Vrequire_cor,
+@Vresp_stop,
+@Vshared_crew,
+@Vshift_overtime,
+@Vstart_shift_loc_x,
+@Vstart_shift_loc_y,
+@Vstation,
+@Vsymnum,
+@Vtravel_cost,
+@Vtype_avail,
+@Vucust1,
+@Vucust2,
+@Vucust3,
+@Vucust4,
+@Vunid,
+@Vunit_status,
+@Vunityp,
+@Vwait_cost
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vunid, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vbay,
+@Vbreak_duration,
+@Vbreak_earliest_time,
+@Vbreak_latest_time,
+@Vbreak_start_time,
+@Vbreak_taken,
+@Vdgroup,
+@Vend_shift_loc_x,
+@Vend_shift_loc_y,
+@Vext_unitattr,
+@Vhourly_cost_sp,
+@Vlev3,
+@Vloc_comm,
+@Vloc_x,
+@Vloc_y,
+@Vmax_disp_assign_jobs,
+@Vmax_time_startpt,
+@Vmdtgroup,
+@Vovertime_cost,
+@Vper_job_cost_sp,
+@Vras_group_id,
+@Vras_mealbreak_type,
+@Vras_supplier_id,
+@Vrequire_cor,
+@Vresp_stop,
+@Vshared_crew,
+@Vshift_overtime,
+@Vstart_shift_loc_x,
+@Vstart_shift_loc_y,
+@Vstation,
+@Vsymnum,
+@Vtravel_cost,
+@Vtype_avail,
+@Vucust1,
+@Vucust2,
+@Vucust3,
+@Vucust4,
+@Vunid,
+@Vunit_status,
+@Vunityp,
+@Vwait_cost
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

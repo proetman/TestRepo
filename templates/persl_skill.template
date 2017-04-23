@@ -1,0 +1,105 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#persl_skillTMP') IS NOT NULL
+DROP TABLE #persl_skillTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #persl_skillTMP
+    (
+	[description] varchar(80),
+	empid int,
+	skill varchar(8),
+	skill_priority int
+    )
+
+
+BULK
+INSERT #persl_skillTMP 
+FROM '{vFmtDir}persl_skill.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}persl_skill.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vdescription varchar(80)
+Declare @Vempid int
+Declare @Vskill varchar(8)
+declare @Vskill_priority int
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	[description],
+	empid,
+	skill,
+	skill_priority
+
+FROM #persl_skillTMP
+order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+@Vdescription,
+@Vempid,
+@Vskill,
+@Vskill_priority
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vempid
+
+insert into persl_skill(
+[description],
+empid,
+skill,
+skill_priority
+
+)
+
+values (
+@Vdescription,
+@Vempid,
+@Vskill,
+@Vskill_priority
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vempid) , ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vdescription,
+@Vempid,
+@Vskill,
+@Vskill_priority
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

@@ -1,0 +1,240 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#EvTypeTMP') IS NOT NULL
+DROP TABLE #EvTypeTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #EvTypeTMP
+    (
+	acknowledge_timer int,
+	advised_event varchar(1),
+	ag_id varchar(9),
+	arrive_timer int,
+	assign_case_state int,
+	auto_response varchar(1),
+	case_num_id int,
+	days_avail int,
+	disp_req varchar(1),
+	dispatch_timer int,
+	eng varchar(80),
+	enroute_timer int,
+	initial_callback_timer int,
+	loi_dist float(24),
+	majevt_id varchar(10),
+	near_dist float(24),
+	pending_timer int,
+	pending_timer_default int,
+	[priority] int,
+	repeat_callback_timer int,
+	sub_eng varchar(80),
+	sub_tycod varchar(16),
+	tycod varchar(16)
+
+    )
+
+
+BULK
+INSERT #EvTypeTMP 
+FROM '{vFmtDir}event_type.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}event_type.Fmt',
+FIRSTROW = 2
+);
+
+
+	Declare @Vacknowledge_timer int
+	Declare @Vadvised_event varchar(1)
+	Declare @Vag_id varchar(9)
+	Declare @Varrive_timer int
+	Declare @Vassign_case_state int
+	Declare @Vauto_response varchar(1)
+	Declare @Vcase_num_id int
+	Declare @Vdays_avail int
+	Declare @Vdisp_req varchar(1)
+	Declare @Vdispatch_timer int
+	Declare @Veng varchar(80)
+	Declare @Venroute_timer int
+	Declare @Vinitial_callback_timer int
+	Declare @Vloi_dist float(24)
+	Declare @Vmajevt_id varchar(10)
+	Declare @Vnear_dist float(24)
+	Declare @Vpending_timer int
+	Declare @Vpending_timer_default int
+	Declare @Vpriority int
+	Declare @Vrepeat_callback_timer int
+	Declare @Vsub_eng varchar(80)
+	Declare @Vsub_tycod varchar(16)
+	Declare @Vtycod varchar(16)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	acknowledge_timer,
+	advised_event,
+	ag_id,
+	arrive_timer,
+	assign_case_state,
+	auto_response,
+	case_num_id,
+	days_avail,
+	disp_req,
+	dispatch_timer,
+	eng,
+	enroute_timer,
+	initial_callback_timer,
+	loi_dist,
+	majevt_id,
+	near_dist,
+	pending_timer,
+	pending_timer_default,
+	[priority],
+	repeat_callback_timer,
+	sub_eng,
+	REPLACE(sub_tycod,' ',''),
+	REPLACE(tycod,' ','')
+FROM #EvTypeTMP
+--order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+	@Vacknowledge_timer,
+	@Vadvised_event,
+	@Vag_id,
+	@Varrive_timer,
+	@Vassign_case_state,
+	@Vauto_response,
+	@Vcase_num_id,
+	@Vdays_avail,
+	@Vdisp_req,
+	@Vdispatch_timer,
+	@Veng,
+	@Venroute_timer,
+	@Vinitial_callback_timer,
+	@Vloi_dist,
+	@Vmajevt_id,
+	@Vnear_dist,
+	@Vpending_timer,
+	@Vpending_timer_default,
+	@Vpriority,
+	@Vrepeat_callback_timer,
+	@Vsub_eng,
+	@Vsub_tycod,
+	@Vtycod
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vtycod + ' ' + @vsub_tycod
+
+insert into event_type(
+
+	acknowledge_timer,
+	advised_event,
+	ag_id,
+	arrive_timer,
+	assign_case_state,
+	auto_response,
+	case_num_id,
+	days_avail,
+	disp_req,
+	dispatch_timer,
+	eng,
+	enroute_timer,
+	initial_callback_timer,
+	loi_dist,
+	majevt_id,
+	near_dist,
+	pending_timer,
+	pending_timer_default,
+	[priority],
+	repeat_callback_timer,
+	sub_eng,
+	sub_tycod,
+	tycod
+)
+
+values (
+
+	@Vacknowledge_timer,
+	@Vadvised_event,
+	@Vag_id,
+	@Varrive_timer,
+	@Vassign_case_state,
+	@Vauto_response,
+	@Vcase_num_id,
+	@Vdays_avail,
+	@Vdisp_req,
+	@Vdispatch_timer,
+	@Veng,
+	@Venroute_timer,
+	@Vinitial_callback_timer,
+	@Vloi_dist,
+	@Vmajevt_id,
+	@Vnear_dist,
+	@Vpending_timer,
+	@Vpending_timer_default,
+	@Vpriority,
+	@Vrepeat_callback_timer,
+	@Vsub_eng,
+	@Vsub_tycod,
+	@Vtycod
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod + ' ' + @Vsub_tycod, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+
+	@Vacknowledge_timer,
+	@Vadvised_event,
+	@Vag_id,
+	@Varrive_timer,
+	@Vassign_case_state,
+	@Vauto_response,
+	@Vcase_num_id,
+	@Vdays_avail,
+	@Vdisp_req,
+	@Vdispatch_timer,
+	@Veng,
+	@Venroute_timer,
+	@Vinitial_callback_timer,
+	@Vloi_dist,
+	@Vmajevt_id,
+	@Vnear_dist,
+	@Vpending_timer,
+	@Vpending_timer_default,
+	@Vpriority,
+	@Vrepeat_callback_timer,
+	@Vsub_eng,
+	@Vsub_tycod,
+	@Vtycod
+
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

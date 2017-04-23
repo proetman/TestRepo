@@ -1,0 +1,189 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#eszTMP') IS NOT NULL
+DROP TABLE #eszTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(max), err_msg  varchar(4000))
+
+CREATE TABLE #eszTMP
+    (
+	alarm_lev int,
+	cdts varchar(16),
+	curent varchar(1),
+	delete_id varbinary(16) NOT NULL CONSTRAINT [DF_eszTmp_DELETE_id] DEFAULT (0x00),
+	deplo_plan_name varchar(30),
+	dgroup varchar(5),
+	esz int,
+	lev2 varchar(6),
+	lev3 varchar(7),
+	page_id varchar(12),
+	recovery_unique_id varbinary(16),
+	resp_plan_name varchar(50),
+	sub_tycod varchar(16),
+	tycod varchar(16),
+	udts varchar(16),
+	unique_id varbinary(16)NOT NULL CONSTRAINT [DF_eszTmp_unique_id]  DEFAULT (newid())
+
+    )
+
+
+BULK
+INSERT #eszTMP 
+FROM '{vFmtDir}esz.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}esz.Fmt',
+FIRSTROW = 2
+);
+
+
+	Declare @Valarm_lev int
+	Declare @Vcdts varchar(16)
+	Declare @Vcurent varchar(1)
+	Declare @Vdelete_id varbinary(16)
+	Declare @Vdeplo_plan_name varchar(30)
+	Declare @Vdgroup varchar(5)
+	Declare @Vesz int
+	Declare @Vlev2 varchar(6)
+	Declare @Vlev3 varchar(7)
+	Declare @Vpage_id varchar(12)
+	Declare @Vrecovery_unique_id varbinary(16)
+	Declare @Vresp_plan_name varchar(50)
+	Declare @Vsub_tycod varchar(16)
+	Declare @Vtycod varchar(16)
+	Declare @Vudts varchar(16)
+	Declare @Vunique_id varbinary(16)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	alarm_lev,
+	cdts,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	dgroup,
+	esz,
+	lev2,
+	lev3,
+	page_id,
+	recovery_unique_id,
+	resp_plan_name,
+	sub_tycod,
+	tycod,
+	udts,
+	unique_id
+
+FROM #eszTMP
+--order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+	@Valarm_lev,
+	@Vcdts,
+	@Vcurent,
+	@Vdelete_id,
+	@Vdeplo_plan_name,
+	@Vdgroup,
+	@Vesz,
+	@Vlev2,
+	@Vlev3,
+	@Vpage_id,
+	@Vrecovery_unique_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod,
+	@Vudts,
+	@Vunique_id
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vesz
+
+insert into esz(
+	alarm_lev,
+	cdts,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	dgroup,
+	esz,
+	lev2,
+	lev3,
+	page_id,
+	recovery_unique_id,
+	resp_plan_name,
+	sub_tycod,
+	tycod,
+	udts,
+	unique_id
+)
+
+values (
+
+	@Valarm_lev,
+	@Vcdts,
+	@Vcurent,
+	@Vdelete_id,
+	@Vdeplo_plan_name,
+	@Vdgroup,
+	@Vesz,
+	@Vlev2,
+	@Vlev3,
+	@Vpage_id,
+	@Vrecovery_unique_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod,
+	@Vudts,
+	@Vunique_id
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+  @Vdgroup + ' ' + @Vlev3 + ' ' + CONVERT(VARCHAR(20),@Vesz), ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into
+ 
+	@Valarm_lev,
+	@Vcdts,
+	@Vcurent,
+	@Vdelete_id,
+	@Vdeplo_plan_name,
+	@Vdgroup,
+	@Vesz,
+	@Vlev2,
+	@Vlev3,
+	@Vpage_id,
+	@Vrecovery_unique_id,
+	@Vresp_plan_name,
+	@Vsub_tycod,
+	@Vtycod,
+	@Vudts,
+	@Vunique_id
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

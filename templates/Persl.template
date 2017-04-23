@@ -1,0 +1,384 @@
+Use {vDB}
+IF OBJECT_ID('tempdb..#test1') IS NOT NULL
+DROP TABLE #test1;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #test1
+    (
+	ag_id varchar(9),
+	app_type varchar(30),
+	bl_typ varchar(5),
+	cad_cmd_mask int,
+	chatid int,
+	curent varchar(1),
+	dbm_cmd_mask int,
+	default_unid varchar(10),
+	delex int,
+	delno int,
+	domain varchar(64),
+	email varchar(80),
+	emp_add varchar(30),
+	emp_city varchar(20),
+	emp_num varchar(16),
+	emp_st varchar(4),
+	empid int,
+	fname varchar(50),
+	host_term varchar(15),
+	ldts varchar(16),
+	lname varchar(50),
+	lodts varchar(16),
+	logged_on varchar(1),
+	mi varchar(1),
+	not_add varchar(30),
+	not_city varchar(20),
+	not_nme varchar(25),
+	not_ph varchar(14),
+	not_st varchar(4),
+	page_id varchar(12),
+	pass_date bigint,
+	pcust1 varchar(50),
+	pcust2 varchar(50),
+	pcust3 varchar(50),
+	pcust4 varchar(50),
+	phone varchar(14),
+	pid int,
+	pswrd varchar(128),
+	pswrd_hash_id int,
+	ras_club_code varchar(10),
+	rms_id int,
+	[soundex] varchar(4),
+	term varchar(15),
+	usr_id varchar(20),
+
+    )
+
+
+BULK
+INSERT #test1 
+FROM '{vFmtDir}persl_comb.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}persl.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vag_id varchar(9)
+Declare @Vapp_type varchar(30)
+Declare @Vbl_typ varchar(5)
+Declare @Vcad_cmd_mask int
+Declare @Vchatid int
+Declare @Vcurent varchar(1)
+Declare @Vdbm_cmd_mask int
+Declare @Vdefault_unid varchar(10)
+Declare @Vdelex int
+Declare @Vdelno int
+Declare @Vdomain varchar(64)
+Declare @Vemail varchar(80)
+Declare @Vemp_add varchar(30)
+Declare @Vemp_city varchar(20)
+Declare @Vemp_num varchar(16)
+Declare @Vemp_st varchar(4)
+Declare @Vempid int
+Declare @Vfname varchar(50)
+Declare @Vhost_term varchar(15)
+Declare @Vldts varchar(16)
+Declare @Vlname varchar(50)
+Declare @Vlodts varchar(16)
+Declare @Vlogged_on varchar(1)
+Declare @Vmi varchar(1)
+Declare @Vnot_add varchar(30)
+Declare @Vnot_city varchar(20)
+Declare @Vnot_nme varchar(25)
+Declare @Vnot_ph varchar(14)
+Declare @Vnot_st varchar(4)
+Declare @Vpage_id varchar(12)
+Declare @Vpass_date bigint
+Declare @Vpcust1 varchar(50)
+Declare @Vpcust2 varchar(50)
+Declare @Vpcust3 varchar(50)
+Declare @Vpcust4 varchar(50)
+Declare @Vphone varchar(14)
+Declare @Vpid int
+Declare @Vpswrd varchar(128)
+Declare @Vpswrd_hash_id int
+Declare @Vras_club_code varchar(10)
+Declare @Vrms_id int
+Declare @Vsoundex varchar(4)
+Declare @Vterm varchar(15)
+Declare @Vusr_id varchar(20)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	app_type,
+	bl_typ,
+	cad_cmd_mask,
+	chatid,
+	curent,
+	dbm_cmd_mask,
+	default_unid,
+	delex,
+	delno,
+	domain,
+	email,
+	emp_add,
+	emp_city,
+	emp_num,
+	emp_st,
+	empid,
+	fname,
+	host_term,
+	ldts,
+	lname,
+	lodts,
+	logged_on,
+	mi,
+	not_add,
+	not_city,
+	not_nme,
+	not_ph,
+	not_st,
+	page_id,
+	pass_date,
+	pcust1,
+	pcust2,
+	pcust3,
+	pcust4,
+	phone,
+	pid,
+	pswrd,
+	pswrd_hash_id,
+	ras_club_code,
+	rms_id,
+	[soundex],
+	term,
+	usr_id
+
+FROM #test1
+order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vapp_type,
+@Vbl_typ,
+@Vcad_cmd_mask,
+@Vchatid,
+@Vcurent,
+@Vdbm_cmd_mask,
+@Vdefault_unid,
+@Vdelex,
+@Vdelno,
+@Vdomain,
+@Vemail,
+@Vemp_add,
+@Vemp_city,
+@Vemp_num,
+@Vemp_st,
+@Vempid,
+@Vfname,
+@Vhost_term,
+@Vldts,
+@Vlname,
+@Vlodts,
+@Vlogged_on,
+@Vmi,
+@Vnot_add,
+@Vnot_city,
+@Vnot_nme,
+@Vnot_ph,
+@Vnot_st,
+@Vpage_id,
+@Vpass_date,
+@Vpcust1,
+@Vpcust2,
+@Vpcust3,
+@Vpcust4,
+@Vphone,
+@Vpid,
+@Vpswrd,
+@Vpswrd_hash_id,
+@Vras_club_code,
+@Vrms_id,
+@Vsoundex,
+@Vterm,
+@Vusr_id
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vempid
+
+insert into persl(
+ag_id,
+app_type,
+bl_typ,
+cad_cmd_mask,
+chatid,
+curent,
+dbm_cmd_mask,
+default_unid,
+delex,
+delno,
+domain,
+email,
+emp_add,
+emp_city,
+emp_num,
+emp_st,
+empid,
+fname,
+host_term,
+ldts,
+lname,
+lodts,
+logged_on,
+mi,
+not_add,
+not_city,
+not_nme,
+not_ph,
+not_st,
+page_id,
+pass_date,
+pcust1,
+pcust2,
+pcust3,
+pcust4,
+phone,
+pid,
+pswrd,
+pswrd_hash_id,
+ras_club_code,
+rms_id,
+[soundex],
+term,
+usr_id
+
+)
+
+values (
+@Vag_id,
+@Vapp_type,
+@Vbl_typ,
+@Vcad_cmd_mask,
+@Vchatid,
+@Vcurent,
+@Vdbm_cmd_mask,
+@Vdefault_unid,
+@Vdelex,
+@Vdelno,
+@Vdomain,
+@Vemail,
+@Vemp_add,
+@Vemp_city,
+@Vemp_num,
+@Vemp_st,
+@Vempid,
+@Vfname,
+@Vhost_term,
+@Vldts,
+@Vlname,
+@Vlodts,
+@Vlogged_on,
+@Vmi,
+@Vnot_add,
+@Vnot_city,
+@Vnot_nme,
+@Vnot_ph,
+@Vnot_st,
+@Vpage_id,
+@Vpass_date,
+@Vpcust1,
+@Vpcust2,
+@Vpcust3,
+@Vpcust4,
+@Vphone,
+@Vpid,
+@Vpswrd,
+@Vpswrd_hash_id,
+@Vras_club_code,
+@Vrms_id,
+@Vsoundex,
+@Vterm,
+@Vusr_id
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record) values ( 'Error in insert ' + convert(varchar,@Vempid))
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(varchar,@Vempid) , ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vapp_type,
+@Vbl_typ,
+@Vcad_cmd_mask,
+@Vchatid,
+@Vcurent,
+@Vdbm_cmd_mask,
+@Vdefault_unid,
+@Vdelex,
+@Vdelno,
+@Vdomain,
+@Vemail,
+@Vemp_add,
+@Vemp_city,
+@Vemp_num,
+@Vemp_st,
+@Vempid,
+@Vfname,
+@Vhost_term,
+@Vldts,
+@Vlname,
+@Vlodts,
+@Vlogged_on,
+@Vmi,
+@Vnot_add,
+@Vnot_city,
+@Vnot_nme,
+@Vnot_ph,
+@Vnot_st,
+@Vpage_id,
+@Vpass_date,
+@Vpcust1,
+@Vpcust2,
+@Vpcust3,
+@Vpcust4,
+@Vphone,
+@Vpid,
+@Vpswrd,
+@Vpswrd_hash_id,
+@Vras_club_code,
+@Vrms_id,
+@Vsoundex,
+@Vterm,
+@Vusr_id
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

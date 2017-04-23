@@ -1,0 +1,98 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#OOSTMP') IS NOT NULL
+DROP TABLE #OOSTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #OOSTMP
+    (
+	can_dispatch varchar(1),
+	eng varchar(80),
+	tycod varchar(16)
+    )
+
+
+BULK
+INSERT #OOSTMP 
+FROM '{vFmtDir}out_of_service_type.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}out_of_service_type.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vcan_dispatch varchar(1)
+Declare @Veng varchar(80)
+Declare @Vtycod varchar(16)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	can_dispatch,
+	eng,
+	tycod
+
+FROM #OOSTMP
+order by tycod asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vcan_dispatch,
+@Veng,
+@Vtycod
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vtycod
+
+insert into Upload_Test.dbo.out_of_service_type(
+can_dispatch,
+eng,
+tycod
+
+)
+
+values (
+@Vcan_dispatch,
+@Veng,
+@Vtycod
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vcan_dispatch,	
+@Veng,
+@Vtycod
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

@@ -1,0 +1,91 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#NodenTMP') IS NOT NULL
+DROP TABLE #NodenTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #NodenTMP
+    (
+	empid int,
+	term varchar(15)
+    )
+
+
+BULK
+INSERT #NodenTMP 
+FROM '{vFmtDir}Noden.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}noden.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vempid int
+Declare @Vterm varchar(15)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	empid,
+	term
+
+FROM #NodenTMP
+order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vempid,
+@Vterm
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vempid
+
+insert into noden(
+empid,
+term
+
+)
+
+values (
+@Vempid,
+@Vterm
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+  convert(Varchar(10),@Vempid), ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vempid,	
+@Vterm
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

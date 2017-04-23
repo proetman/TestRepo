@@ -1,0 +1,105 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#DPTMP') IS NOT NULL
+DROP TABLE #DPTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #DPTMP
+    (
+	ag_id varchar(9),
+	case_num_id int,
+	eng varchar(80),
+	tycod varchar(16)
+    )
+
+
+BULK
+INSERT #DPTMP 
+FROM '{vFmtDir}Disposition_Type.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}Disposition_Type.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vag_id varchar(9)
+Declare @Vcase_num_id int
+Declare @Veng varchar(80)
+Declare @Vtycod varchar(16)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	case_num_id,
+	eng,
+	tycod
+
+FROM #DPTMP
+order by tycod asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vcase_num_id,
+@Veng,
+@Vtycod
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vtycod
+
+insert into Upload_Test.dbo.disposition_type(
+ag_id,
+case_num_id,
+eng,
+tycod
+
+)
+
+values (
+@Vag_id,
+@Vcase_num_id,
+@Veng,
+@Vtycod
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vcase_num_id,
+@Veng,
+@Vtycod
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

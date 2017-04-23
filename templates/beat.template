@@ -1,0 +1,168 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#beatTMP') IS NOT NULL
+DROP TABLE #beatTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #beatTMP
+    (
+	cdts varchar(16),
+	comm varchar(80),
+	curent varchar(1),
+	delete_id varbinary(16) NOT NULL CONSTRAINT [DF_beatTmp_DELETE_id] DEFAULT (0x00),
+	deplo_plan_name varchar(30),
+	lev3 varchar(7),
+	lev4 varchar(5),
+	lev5 varchar(5),
+	map_no varchar(8),
+	mun varchar(40),
+	recovery_unique_id varbinary(16),
+	udts varchar(16),
+	unique_id varbinary(16)NOT NULL CONSTRAINT [DF_beatTmp_unique_id]  DEFAULT (newid())
+
+    )
+
+
+BULK
+INSERT #beatTMP 
+FROM '{vFmtDir}beat.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}beat.Fmt',
+FIRSTROW = 2
+);
+
+
+
+	Declare @Vcdts varchar(16)
+	Declare @Vcomm varchar(80)
+	Declare @Vcurent varchar(1)
+	Declare @Vdelete_id varbinary(16)
+	Declare @Vdeplo_plan_name varchar(30)
+	Declare @Vlev3 varchar(7)
+	Declare @Vlev4 varchar(5)
+	Declare @Vlev5 varchar(5)
+	Declare @Vmap_no varchar(8)
+	Declare @Vmun varchar(40)
+	Declare @Vrecovery_unique_id varbinary(16)
+	Declare @Vudts varchar(16)
+	Declare @Vunique_id varbinary(16)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	cdts,
+	comm,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	lev3,
+	lev4,
+	lev5,
+	map_no,
+	mun,
+	recovery_unique_id,
+	udts,
+	unique_id
+
+FROM #beatTMP
+--order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vcdts,
+@Vcomm,
+@Vcurent,
+@Vdelete_id,
+@Vdeplo_plan_name,
+@Vlev3,
+@Vlev4,
+@Vlev5,
+@Vmap_no,
+@Vmun,
+@Vrecovery_unique_id,
+@Vudts,
+@Vunique_id
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vlev3
+
+insert into beat(
+	cdts,
+	comm,
+	curent,
+	delete_id,
+	deplo_plan_name,
+	lev3,
+	lev4,
+	lev5,
+	map_no,
+	mun,
+	recovery_unique_id,
+	udts,
+	unique_id
+)
+
+values (
+@Vcdts,
+@Vcomm,
+@Vcurent,
+@Vdelete_id,
+@Vdeplo_plan_name,
+@Vlev3,
+@Vlev4,
+@Vlev5,
+@Vmap_no,
+@Vmun,
+@Vrecovery_unique_id,
+@Vudts,
+@Vunique_id
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vlev3, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vcdts,
+@Vcomm,
+@Vcurent,
+@Vdelete_id,
+@Vdeplo_plan_name,
+@Vlev3,
+@Vlev4,
+@Vlev5,
+@Vmap_no,
+@Vmun,
+@Vrecovery_unique_id,
+@Vudts,
+@Vunique_id
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

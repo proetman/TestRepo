@@ -1,0 +1,136 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#TermTMP') IS NOT NULL
+DROP TABLE #TermTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #TermTMP
+    (
+	current_callback_term varchar(1),
+	default_callback_term varchar(1),
+	[description] varchar(50),
+	domain varchar(50),
+	fsa_opid int,
+	mux_id int,
+	remote_only varchar(1),	
+	term varchar(15)
+    )
+
+
+BULK
+INSERT #TermTMP 
+FROM '{vSource}'
+WITH
+(
+FORMATFILE = '{vFmtDir}Term.Fmt',
+FIRSTROW = 2
+);
+
+
+Declare @Vcurrent_callback_term varchar(1)
+Declare @Vdefault_callback_term varchar(1)
+Declare @Vdescription varchar(50)
+Declare @Vdomain varchar(50)
+Declare @Vfsa_opid int
+Declare @Vmux_id int
+Declare @Vremote_only varchar(1)	
+Declare @Vterm varchar(15)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	current_callback_term,
+	default_callback_term,
+	[description],
+	domain,
+	fsa_opid,
+	mux_id,
+	remote_only,
+	term
+
+FROM #TermTMP
+order by term asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+@Vcurrent_callback_term,
+@Vdefault_callback_term,
+@Vdescription,
+@Vdomain,
+@Vfsa_opid,
+@Vmux_id,
+@Vremote_only,
+@Vterm
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vterm
+
+insert into Upload_Test.dbo.term(
+
+current_callback_term,
+default_callback_term,
+[description],
+domain,
+fsa_opid,
+mux_id,
+remote_only,
+term
+
+)
+
+values (
+
+@Vcurrent_callback_term,
+@Vdefault_callback_term,
+@Vdescription,
+@Vdomain,
+@Vfsa_opid,
+@Vmux_id,
+@Vremote_only,
+@Vterm
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vterm, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+
+@Vcurrent_callback_term,
+@Vdefault_callback_term,
+@Vdescription,
+@Vdomain,
+@Vfsa_opid,
+@Vmux_id,
+@Vremote_only,
+@Vterm
+
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

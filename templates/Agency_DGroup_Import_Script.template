@@ -1,0 +1,104 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#ADgroupTMP') IS NOT NULL
+DROP TABLE #ADgroupTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #ADgroupTMP
+    (
+	ag_id varchar(9),
+	[description] varchar(50),
+	dgroup varchar(5),
+	page_id varchar(12)
+
+    )
+
+
+BULK
+INSERT #ADgroupTMP 
+FROM '{vFmtDir}agency_dgroup.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}agency_dgroup.Fmt',
+FIRSTROW = 2
+);
+
+	Declare @Vag_id varchar(9)
+	Declare @Vdescription varchar(50)
+	Declare @Vdgroup varchar(5)
+	Declare @Vpage_id varchar(12)
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	[description],
+	dgroup,
+	page_id
+
+FROM #ADgroupTMP
+--order by empid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vdescription,
+@Vdgroup,
+@Vpage_id
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vdgroup
+
+insert into agency_dgroup(
+	ag_id,
+	[description],
+	dgroup,
+	page_id
+
+)
+
+values (
+@Vag_id,
+@Vdescription,
+@Vdgroup,
+@Vpage_id
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vdgroup, ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vdescription,
+@Vdgroup,
+@Vpage_id
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

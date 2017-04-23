@@ -1,0 +1,177 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#Def_VehicTMP') IS NOT NULL
+DROP TABLE #Def_VehicTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #Def_VehicTMP
+    (
+
+	ack_timer int,
+	ag_id varchar(9),
+	arrive_timer int,
+	carid varchar(12),
+	delay_value int,
+	disp_timer int,
+	enroute_timer int,
+	max_ht int,
+	max_wd int,
+	max_wt int,
+	page_id varchar(21),
+	page_unit_person smallint,
+	ras_surefire_sync varchar(1),
+	vflag varchar(1)
+
+    )
+
+
+BULK
+INSERT #Def_VehicTMP 
+FROM '{vFmtDir}def_vehic.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}def_vehic.fmt',
+FIRSTROW = 2
+);
+
+	Declare @Vack_timer int
+	Declare @Vag_id varchar(9)
+	Declare @Varrive_timer int
+	Declare @Vcarid varchar(12)
+	Declare @Vdelay_value int
+	Declare @Vdisp_timer int
+	Declare @Venroute_timer int
+	Declare @Vmax_ht int
+	Declare @Vmax_wd int
+	Declare @Vmax_wt int
+	Declare @Vpage_id varchar(21)
+	Declare @Vpage_unit_person smallint
+	Declare @Vras_surefire_sync varchar(1)
+	Declare @Vvflag varchar(1)
+	
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+
+	ack_timer,
+	ag_id,
+	arrive_timer,
+	carid,
+	delay_value,
+	disp_timer,
+	enroute_timer,
+	max_ht,
+	max_wd,
+	max_wt,
+	page_id,
+	page_unit_person,
+	ras_surefire_sync,
+	vflag
+
+FROM #Def_VehicTMP
+order by carid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+	@Vack_timer,
+	@Vag_id,
+	@Varrive_timer,
+	@Vcarid,
+	@Vdelay_value,
+	@Vdisp_timer,
+	@Venroute_timer,
+	@Vmax_ht,
+	@Vmax_wd,
+	@Vmax_wt,
+	@Vpage_id,
+	@Vpage_unit_person,
+	@Vras_surefire_sync,
+	@Vvflag
+
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vcarid
+
+insert into def_vehic(
+	ack_timer,
+	ag_id,
+	arrive_timer,
+	carid,
+	delay_value,
+	disp_timer,
+	enroute_timer,
+	max_ht,
+	max_wd,
+	max_wt,
+	page_id,
+	page_unit_person,
+	ras_surefire_sync,
+	vflag
+
+)
+
+values (
+	@Vack_timer,
+	@Vag_id,
+	@Varrive_timer,
+	@Vcarid,
+	@Vdelay_value,
+	@Vdisp_timer,
+	@Venroute_timer,
+	@Vmax_ht,
+	@Vmax_wd,
+	@Vmax_wt,
+	@Vpage_id,
+	@Vpage_unit_person,
+	@Vras_surefire_sync,
+	@Vvflag
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vcarid), ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+	@Vack_timer,
+	@Vag_id,
+	@Varrive_timer,
+	@Vcarid,
+	@Vdelay_value,
+	@Vdisp_timer,
+	@Venroute_timer,
+	@Vmax_ht,
+	@Vmax_wd,
+	@Vmax_wt,
+	@Vpage_id,
+	@Vpage_unit_person,
+	@Vras_surefire_sync,
+	@Vvflag
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

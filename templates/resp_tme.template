@@ -1,0 +1,111 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#respTMP') IS NOT NULL
+DROP TABLE #respTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+
+CREATE TABLE #respTMP
+    (
+	ag_id varchar(9),
+	dgroup varchar(5),
+	dow varchar(1),
+	eta int,
+	hod varchar(2) 
+    )
+
+
+BULK
+INSERT #respTMP 
+FROM '{vFmtDir}resp_tme.txt'
+WITH
+(
+FORMATFILE = '{vFmtDir}resp_tme.Fmt',
+FIRSTROW = 2
+);
+
+
+
+	Declare @Vag_id varchar(9)
+	Declare @Vdgroup varchar(5)
+	Declare @Vdow varchar(1)
+	Declare @Veta int
+	Declare @Vhod varchar(2) 
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	dgroup,
+	dow,
+	eta,
+	hod
+
+FROM #respTMP
+order by dgroup asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vdgroup,
+@Vdow,
+@Veta,
+@Vhod
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vdgroup
+
+insert into resp_tme(
+	ag_id,
+	dgroup,
+	dow,
+	eta,
+	hod
+)
+
+values (
+@Vag_id,
+@Vdgroup,
+@Vdow,
+@Veta,
+@Vhod
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+convert(Varchar(10),@Vdgroup) , ERROR_MESSAGE())
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vdgroup,
+@Vdow,
+@Veta,
+@Vhod
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

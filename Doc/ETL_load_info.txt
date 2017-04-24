@@ -1,55 +1,37 @@
 [short name, tab, template, fmt_file, table list]
 
-['term','term', 'Term.template','dbo.term.Table.sql']
-['personnel','persl','Persl.template','dbo.persl.Table.sql']
-['disposition codes','disposition_type','Disposition_Type.template','dbo.disposition_type.Table.sql']
-['out of service codes','out_of_service_type','Out_Of_Service_Type.template','dbo.out_of_service_type.Table.sql']
-['out of service type agency','out_of_service_type_agency','Out_Of_Service_Type_Agency.template','dbo.out_of_service_type_agency.Table.sql']
-['skills','persl_skill','persl_skill.template','dbo.persl_skill.Table.sql']
-['vehicles','def_vehic','Def_Vehic.template','dbo.def_vehic.Table.sql']
-['units','def_unit','Def_Unit.template','dbo.def_unit.Table.sql']
-['eta table','resp_tme','resp_tme.template','dbo.resp_tme.Table.sql']
-['event types and sub-types','Event Types and Sub Types Data','event_type.template','dbo.event_type.Table.sql']
+load_details = {}
+load_details['term'] = ['term', 'Term.template','dbo.term.Table.sql']
+load_details['personnel'] = ['persl','Persl.template','dbo.persl.Table.sql']
+load_details['disposition codes'] = ['disposition_type','Disposition_Type.template','dbo.disposition_type.Table.sql']
+load_details['out of service codes'] = ['out_of_service_type','Out_Of_Service_Type.template','dbo.out_of_service_type.Table.sql']
+load_details['out of service type agency'] = ['out_of_service_type_agency','Out_Of_Service_Type_Agency.template','dbo.out_of_service_type_agency.Table.sql']
+load_details['skills'] = ['persl_skill','persl_skill.template','dbo.persl_skill.Table.sql']
+load_details['vehicles'] = ['def_vehic','Def_Vehic.template','dbo.def_vehic.Table.sql']
+load_details['units'] = ['def_unit','Def_Unit.template','dbo.def_unit.Table.sql']
+load_details['eta table'] = ['resp_tme','resp_tme.template','dbo.resp_tme.Table.sql']
+load_details['event types and sub-types'] = ['Event Types and Sub Types Data','event_type.template','dbo.event_type.Table.sql']
 
 
 ['event_type_alarm_level', 'event_type_alarm_level.template']
 
-['personnel node access','new development'
+['personnel node access',
+dbo.noden.Table.sql
+Noden.template
+
 ['esp alerts','new development'
 ['vehicle equipment','new development'
 ['term app access - inetveiwer','new development'
 ['unit agency restriction','new development'
+['membership pricing level (surefire)','new development']
 
 
-
-
-['membership pricing level (surefire)','ras_mem_pricing-lev']
-
-          Matrix report for "membership pricing level (surefire).xlsx" execution order 15, verification ETL
-Tab                                     common          master 
------------------------------- --------------- --------------- 
-ras_mem_pricing-lev                       1517            1517 
-
-   FILE: "c:/work/stuff/all_2017_apr_19__1540/common data templates/stock movement management (surefire)/membership pricing level (surefire).xlsx"
 
 
 Unallocated Create Table
 ------------------------
-dbo.agency_dgroup.Table.sql
-dbo.backup_beat_list.Table.sql
-dbo.beat.Table.sql
-dbo.esz.Table.sql
-dbo.event_type_alarm_level.Table.sql
-dbo.noden.Table.sql
-dbo.ras_crib_location.Table.sql
-dbo.resp_plan.Table.sql
+dbo.event_type_alarm_level.Table.sql   (to nikki)
 
 
-Unallocated Templates:
--------------------------
-Agency_DGroup_Import_Script.template
-backup_beat_list.template
-beat.template
-esz.template
-Noden.template
+
 

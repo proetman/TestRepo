@@ -25,7 +25,7 @@ CREATE TABLE #TermTMP
 
 BULK
 INSERT #TermTMP 
-FROM '{vSource}'
+FROM '{vDataDir}/dunno.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}Term.Fmt',

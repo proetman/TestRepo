@@ -33,7 +33,7 @@ CREATE TABLE #Def_VehicTMP
 
 BULK
 INSERT #Def_VehicTMP 
-FROM '{vFmtDir}def_vehic.txt'
+FROM '{vDataDir}def_vehic.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}def_vehic.fmt',

@@ -60,7 +60,7 @@ CREATE TABLE #DEF_UnitTMP
 
 BULK
 INSERT #DEF_UnitTMP 
-FROM '{vFmtDir}Def_Unit.txt'
+FROM '{vDataDir}Def_Unit.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}Def_Unit.Fmt',

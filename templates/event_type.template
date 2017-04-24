@@ -41,7 +41,7 @@ CREATE TABLE #EvTypeTMP
 
 BULK
 INSERT #EvTypeTMP 
-FROM '{vFmtDir}event_type.txt'
+FROM '{vDataDir}event_type.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}event_type.Fmt',

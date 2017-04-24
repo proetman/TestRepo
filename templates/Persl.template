@@ -60,7 +60,7 @@ CREATE TABLE #test1
 
 BULK
 INSERT #test1 
-FROM '{vFmtDir}persl_comb.txt'
+FROM '{vDataDir}persl_comb.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}persl.Fmt',

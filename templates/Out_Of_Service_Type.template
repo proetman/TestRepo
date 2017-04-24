@@ -20,7 +20,7 @@ CREATE TABLE #OOSTMP
 
 BULK
 INSERT #OOSTMP 
-FROM '{vFmtDir}out_of_service_type.txt'
+FROM '{vDataDir}out_of_service_type.txt'
 WITH
 (
 FORMATFILE = '{vFmtDir}out_of_service_type.Fmt',

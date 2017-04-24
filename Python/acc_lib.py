@@ -802,7 +802,7 @@ def load_master_file(p_value, p_work_files):
 # --------------------------------------------------------------------
 
 
-def load_matching_masterfile(p_work_files):
+def load_matching_masterfile(p_work_files, p_load_excel=True):
     """
     Initialise the directories where the files live
     file structure
@@ -829,7 +829,10 @@ def load_matching_masterfile(p_work_files):
         file_dict['type'] = 'club'
         file_dict['tag'] = None
         file_dict['club'] = None
-        file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
+        if p_load_excel:
+            file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
+        else:
+            file_dict['club_ss'] = None
 
         work_dict[file] = (file_dict)
         counter += 1
@@ -843,7 +846,10 @@ def load_matching_masterfile(p_work_files):
         file_dict['type'] = 'club common'
         file_dict['tag'] = None
         file_dict['club'] = None
-        file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
+        if p_load_excel:
+            file_dict['club_ss'] = open_ss2(file_dict['club_file_full'])
+        else:
+            file_dict['club_ss'] = None
 
         work_dict[file] = (file_dict)
         counter += 1
@@ -861,7 +867,10 @@ def load_matching_masterfile(p_work_files):
 
         value['master_file_short'] = l_short_m_name
         value['master_file_full'] = l_m_file
-        value['master_ss'] = open_ss(l_m_file)
+        if p_load_excel:
+            value['master_ss'] = open_ss(l_m_file)
+        else:
+            value['master_ss'] = None
 
     p_i('')
     for key, value in work_dict.items():

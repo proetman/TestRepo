@@ -9,12 +9,13 @@ import argparse
 # import re
 # import numpy as np
 # import pandas as pd
-import textwrap
+
+import subprocess
+# import textwrap
 
 # Import racq library for RedShift
 
 import acc_lib as alib
-
 
 # --------------------------------------------------------------------
 #
@@ -37,21 +38,45 @@ def setup_load_details():
     """
 
     ld = {}
-    ld['term'] = ['term', 'Term.template', 'dbo.term.Table.sql']
-    ld['personnel'] = ['persl', 'Persl.template', 'dbo.persl.Table.sql']
-    ld['disposition codes'] = ['disposition_type', 'Disposition_Type.template', 'dbo.disposition_type.Table.sql']
-    ld['skills'] = ['persl_skill', 'persl_skill.template', 'dbo.persl_skill.Table.sql']
-    ld['vehicles'] = ['def_vehic', 'Def_Vehic.template', 'dbo.def_vehic.Table.sql']
-    ld['units'] = ['def_unit', 'Def_Unit.template', 'dbo.def_unit.Table.sql']
-    ld['eta table'] = ['resp_tme', 'resp_tme.template', 'dbo.resp_tme.Table.sql']
 
-    ld['out of service type agency'] = ['out_of_service_type_agency', 'Out_Of_Service_Type_Agency.template',
+    ld['term'] = ['term - {vClub}__TERM.tsv',
+                  'Term.template',
+                  'dbo.term.Table.sql']
+
+    ld['personnel'] = ['personnel - {vClub}__PERSL',
+                       'Persl.template',
+                       'dbo.persl.Table.sql']
+
+    ld['disposition codes'] = ['disposition codes__DISPOSITION_TYPE.tsv',
+                               'Disposition_Type.template',
+                               'dbo.disposition_type.Table.sql']
+
+    ld['skills'] = ['skills - {vClub}__PERSL_SKILL.tsv',
+                    'persl_skill.template',
+                    'dbo.persl_skill.Table.sql']
+
+    ld['vehicles'] = ['vehicles - {vClub}__DEF_VEHIC.tsv',
+                      'Def_Vehic.template',
+                      'dbo.def_vehic.Table.sql']
+
+    ld['units'] = ['units - {vClub}__DEF_UNIT.tsv',
+                   'Def_Unit.template',
+                   'dbo.def_unit.Table.sql']
+
+    ld['eta table'] = ['eta table - {vClub}__ETA.tsv',
+                       'resp_tme.template',
+                       'dbo.resp_tme.Table.sql']
+
+    ld['out of service type agency'] = ['out of service type agency__OUT_OF_SERVICE_TYPE_AGENCY.tsv',
+                                        'Out_Of_Service_Type_Agency.template',
                                         'dbo.out_of_service_type_agency.Table.sql']
 
-    ld['event types and sub-types'] = ['Event Types and Sub Types Data', 'event_type.template',
+    ld['event types and sub-types'] = ['event types and sub-types__EVENT_TYPES_AND_SUB_TYPES_DATA.tsv',
+                                       'event_type.template',
                                        'dbo.event_type.Table.sql']
 
-    ld['out of service codes'] = ['out_of_service_type', 'Out_Of_Service_Type.template',
+    ld['out of service codes'] = ['out of service codes__OUT_OF_SERVICE_TYPE.tsv',
+                                  'Out_Of_Service_Type.template',
                                   'dbo.out_of_service_type.Table.sql']
 
     return ld
@@ -64,47 +89,260 @@ def setup_load_details():
 # --------------------------------------------------------------------
 
 
-def process(p_code_dir, p_ld):
+def process(p_dir, p_ld, p_conn_details, p_work_dict):
     """
     process a load dict
     """
-    alib.log_debug('')
-    alib.log_debug('Start process for {}'.format(p_ld[0]))
+    alib.p_i('')
+    alib.p_i('Start process for {}'.format(p_ld[0]))
     # -- setup local variables
     l_short_name = p_ld[0]
     l_details = p_ld[1]
 
-    l_table_name = l_details[0]
+    l_sheet_name = l_details[0]
     l_template = l_details[1]
     l_create_table = l_details[2]
+    # l_create_table ='dbo.def_unit.Table.sql'
 
-    l_fmt_file = p_code_dir + '/templates/' + l_template
-    l_sql_file = p_code_dir + '/sql/' + l_create_table
+    l_data_dir = p_dir['data']
+    l_code_dir = p_dir['code']
+    l_temp_dir = p_dir['temp']
+
+    tsv_results = fetch_tsv_file(p_work_dict, l_short_name, l_sheet_name, l_data_dir)
+
+    # l_fmt_file = p_code_dir + '/templates/' + l_template
 
     alib.log_debug('    short name    : {}'.format(l_short_name))
-    alib.log_debug('    table name    : {}'.format(l_table_name))
-    alib.log_debug('    fmt file      : {}'.format(l_fmt_file.replace('/', '\\')))
-    alib.log_debug('    sql file      : {}'.format(l_sql_file.replace('/', '\\')))
+    alib.log_debug('    table name    : {}'.format(l_sheet_name))
 
-vDB
-vFmtDir
-vDataDir
+    l_sql_tmp_file = create_tmp_sql_file(l_code_dir, l_temp_dir, p_conn_details, l_create_table)
 
+    run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                                     vInstance=p_conn_details['instance'],
+                                                                     vSql=l_sql_tmp_file.replace('/', '\\'))
 
+    run_job(run_sql_cmd)
+
+    for tsv_file in tsv_results:
+        alib.p_i('        Load file {}'.format(tsv_file))
+
+        l_fmt_tmp_file = create_tmp_fmt_file(l_code_dir, l_temp_dir, p_conn_details, l_template, tsv_file)
+
+        run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                                         vInstance=p_conn_details['instance'],
+                                                                         vSql=l_fmt_tmp_file.replace('/', '\\'))
+
+        run_fmt_job(run_sql_cmd)
 
     return
 
+
 # --------------------------------------------------------------------
 #
-#                          setup load details
+#                          CREATE TMP SQL FILE
 #
 # --------------------------------------------------------------------
 
 
-def get_fmt_file(p_ld):
+def fetch_tsv_file(p_work_dict, p_short_name, p_sheet_name, p_data_dir):
     """
-    process a load dict
+    create a sql file that has all the variables replaced.
     """
+    alib.log_debug('start fetch tsv file for [{}]'.format(p_short_name))
+    print('short name {}'.format(p_short_name))
+    print('data dir   {}'.format(p_data_dir))
+
+    tsv_name = None
+
+    tsv_results = []
+
+    for key, value in p_work_dict.items():
+        if value['tag'] == p_short_name:
+
+            short_name = value['club_file_short']
+            club_type = value['type']
+            l_sheet = p_sheet_name.format(vClub=value['club'])
+            l_dir = '/'.join(short_name.split('/')[:-1])
+
+            if club_type == 'club':
+                tsv_name = p_data_dir + '/data templates by club/' + l_dir + '/' + l_sheet
+            else:
+                tsv_name = p_data_dir + '/common data templates/' + l_dir + '/' + l_sheet
+
+            tsv_results.append(tsv_name)
+
+    return tsv_results
+
+# --------------------------------------------------------------------
+#
+#                          CREATE TMP SQL FILE
+#
+# --------------------------------------------------------------------
+
+
+def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file):
+    """
+    create a sql file that has all the variables replaced.
+    """
+    alib.log_debug('Start create tmp sql file')
+
+    l_schema = p_conn_details['schema']
+
+    l_sql_file = p_code_dir + '/sql/' + p_sql_file
+    alib.log_debug('    sql file      : {}'.format(l_sql_file.replace('/', '\\')))
+
+    l_sql_data = read_file(l_sql_file)
+    l_data_dir = p_data_dir.replace('/', '\\')
+
+    l_new_data = []
+    for line in l_sql_data:
+        l_new_data.append(line.format(vDB=l_schema,
+                                      vFmtDir=l_data_dir,
+                                      vDataDir=l_data_dir))
+
+    l_sql_target_file = p_data_dir + '/' + p_sql_file
+
+    write_file(l_sql_target_file, l_new_data)
+
+    return l_sql_target_file
+
+
+# --------------------------------------------------------------------
+#
+#                          CREATE TMP FMT FILE
+#
+# --------------------------------------------------------------------
+
+
+def create_tmp_fmt_file(p_code_dir, p_data_dir, p_conn_details, p_template, p_tsv_file):
+    """
+    create a fmt file that has all the variables replaced.
+    """
+    alib.log_debug('Start create tmp fmt file')
+
+    l_schema = p_conn_details['schema']
+
+    l_fmt_file = p_code_dir + '/templates/' + p_template
+
+    alib.log_debug('    fmt file      : {}'.format(l_fmt_file.replace('/', '\\')))
+
+    l_fmt_data = read_file(l_fmt_file)
+    l_data_dir = p_data_dir.replace('/', '\\')
+    l_data_dir = l_data_dir + '\\'
+
+    l_new_data = []
+    for line in l_fmt_data:
+        l_new_data.append(line.format(vDB=l_schema,
+                                      vFmtDir=l_data_dir,
+                                      vTSVFile=p_tsv_file))
+
+    l_fmt_target_file = p_data_dir + '/' + p_template + '.sql'
+
+    write_file(l_fmt_target_file, l_new_data)
+
+    return l_fmt_target_file
+
+# --------------------------------------------------------------------
+#
+#                          READ FILE
+#
+# --------------------------------------------------------------------
+
+
+def read_file(p_file):
+    """
+    read an entire file, return it as a string.
+    p_file as a parameter should be the full path name to the file.
+    """
+
+    with open(p_file, "r") as myfile:
+        data = myfile.readlines()
+
+    return data
+
+# --------------------------------------------------------------------
+#
+#                          WRITE FILE
+#
+# --------------------------------------------------------------------
+
+
+def write_file(p_file, p_list):
+    """
+    read an entire file, return it as a string.
+    p_file as a parameter should be the full path name to the file.
+    """
+
+    with open(p_file, "w+") as myfile:
+        for line in p_list:
+            myfile.write(line)
+
+    return
+
+# --- process
+
+# --------------------------------------------------------------------
+#
+#                      run FMT job
+#
+# --------------------------------------------------------------------
+
+
+def run_fmt_job(p_cmd):
+    """
+    run job
+    if fail, send error to log file.
+    """
+    alib.p_i('        Run Command: [{}]'.format(''.join(p_cmd)))
+
+    job = subprocess.Popen(p_cmd,
+                           stdin=subprocess.PIPE,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+
+    output, error = job.communicate()
+
+    if b'Error in insert' in output:
+        alib.p_e('        Errors found, please review log file')
+        alib.p_e('        output = {}'.format(output))
+    else:
+        alib.p_i('        Success')
+        alib.log_debug('        output = {}'.format(output))
+        alib.p_i('')
+
+    if len(error) > 0:
+        alib.log_error('    error =  = {}'.format(error))
+
+# --------------------------------------------------------------------
+#
+#                      run job
+#
+# --------------------------------------------------------------------
+
+
+def run_job(p_cmd):
+    """
+    run job
+    if fail, send error to log file.
+    """
+    alib.p_i('')
+    alib.p_i('Run Command: [{}]'.format(''.join(p_cmd)))
+
+    job = subprocess.Popen(p_cmd,
+                           stdin=subprocess.PIPE,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+
+    output, error = job.communicate()
+
+    if b'There is already an object named' in output:
+        alib.p_i('    Errors found, please review log file')
+    else:
+        alib.p_i('    Success')
+
+    alib.log_info('    output = {}'.format(output))
+    if len(error) > 0:
+        alib.log_error('    error =  = {}'.format(error))
 
 # --- Program Init
 # --------------------------------------------------------------------
@@ -166,6 +404,16 @@ def initialise():
                         default=None,
                         required=False)
 
+    parser.add_argument('--data_dir',
+                        help='directory for data files',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--temp_dir',
+                        help='directory for temp build files',
+                        default='c:/temp',
+                        required=False)
+
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -181,6 +429,12 @@ def initialise():
 
     if args['code_dir'] is not None:
         args['code_dir'] = alib.validate_dir_param(args['code_dir'])
+
+    if args['data_dir'] is not None:
+        args['data_dir'] = alib.validate_dir_param(args['data_dir'])
+
+    if args['temp_dir'] is not None:
+        args['temp_dir'] = alib.validate_dir_param(args['temp_dir'])
 
     return (args, log_filename)
 
@@ -226,14 +480,29 @@ def main():
     # -------------------------------------
     # Fetch program arguments
 
-    l_code_dir = args['code_dir']
+    my_work_dir = {}
+    my_work_dir['data'] = args['data_dir']
+    my_work_dir['code'] = args['code_dir']
+    my_work_dir['temp'] = args['temp_dir']
+
+    # -------------------------------------
+    # -- Fetch the tables to process
+
+    work_dir = alib.load_dir(args)
+    work_files = alib.load_files(work_dir)
+
+    work_dict = alib.load_matching_masterfile(work_files, p_load_excel=False)
+
+    alib.load_tags(work_dict)
+
+    alib.print_filenames(work_dict)
+
     # -------------------------------------
     # -- Fetch the tables to process
 
     load_details = setup_load_details()
     for ld in load_details.items():
-        process(l_code_dir, ld)
-
+        process(my_work_dir, ld, connect_details, work_dict)
 
     db_conn.close()
 

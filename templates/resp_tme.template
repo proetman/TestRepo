@@ -22,7 +22,7 @@ CREATE TABLE #respTMP
 
 BULK
 INSERT #respTMP 
-FROM '{vDataDir}resp_tme.txt'
+FROM '{vTSVFile}'
 WITH
 (
 FORMATFILE = '{vFmtDir}resp_tme.Fmt',

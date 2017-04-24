@@ -21,7 +21,7 @@ CREATE TABLE #persl_skillTMP
 
 BULK
 INSERT #persl_skillTMP 
-FROM '{vDataDir}persl_skill.txt'
+FROM '{vTSVFile}'
 WITH
 (
 FORMATFILE = '{vFmtDir}persl_skill.Fmt',

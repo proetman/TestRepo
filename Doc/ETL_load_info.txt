@@ -32,6 +32,19 @@ Unallocated Create Table
 ------------------------
 dbo.event_type_alarm_level.Table.sql   (to nikki)
 
+Noden.template
+event_type_alarm_level.template
+esz.template
 
 
+Disposition_Type.template
+Def_Vehic.template
+Def_Unit.template
+event_type.template
+Out_Of_Service_Type.template
+Out_Of_Service_Type_Agency.template
+Persl.template
+persl_skill.template
+resp_tme.template
+Term.template
 

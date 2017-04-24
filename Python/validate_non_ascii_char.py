@@ -44,7 +44,7 @@ OTHER_TAGS = alib.OTHER_TAGS
 # ------------------------------------------------------------------------------------------
 
 
-def clean_cell(p_cell, p_cell_location):
+def clean_cell(p_cell, p_cell_location=None):
     """
     Remove non-ascii characters from cell
 
@@ -117,7 +117,10 @@ def clean_cell(p_cell, p_cell_location):
         return None
     else:
         # alib.log_info('        before: {}'.format(p_cell))
-        alib.log_info('        loc: {}, modified value : {}'.format(p_cell_location, result))
+        if p_cell_location is None:
+            alib.log_info('        loc: , modified value : {}'.format(p_cell_location, result))
+        else:
+            alib.log_info('        loc: {}, modified value : {}'.format(p_cell_location, result))
         return result
 
     return

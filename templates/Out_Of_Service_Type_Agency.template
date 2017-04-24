@@ -20,7 +20,7 @@ CREATE TABLE #OOSATMP
 
 BULK
 INSERT #OOSATMP 
-FROM '{vDataDir}out_of_service_type_agency.txt'
+FROM '{vTSVFile}'
 WITH
 (
 FORMATFILE = '{vFmtDir}out_of_service_type_agency.Fmt',

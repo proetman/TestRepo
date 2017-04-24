@@ -21,7 +21,7 @@ CREATE TABLE #DPTMP
 
 BULK
 INSERT #DPTMP 
-FROM '{vDataDir}Disposition_Type.txt'
+FROM '{vTSVFile}'
 WITH
 (
 FORMATFILE = '{vFmtDir}Disposition_Type.Fmt',

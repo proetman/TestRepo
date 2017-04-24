@@ -79,6 +79,31 @@ def setup_load_details():
                                   'Out_Of_Service_Type.template',
                                   'dbo.out_of_service_type.Table.sql']
 
+    ld[''] = ['',
+	      'app_access.template',
+	      'dbo.app_access.Table.sql',
+	      'app_access.fmt']
+
+    ld[''] = ['',
+	      'def_equip.template',
+	      'dbo.def_equip.Table.sql',
+	      'def_equip.fmt']
+
+    ld[''] = ['',
+	      'def_unit_restr_ag_avail.template',
+	      'dbo.def_unit_restr_ag_avail.Table.sql',
+	      'def_unit_restr_ag_avail']
+
+    ld[''] = ['',
+	      'ras_ext_sp_alert.template',
+	      'dbo.ras_ext_sp_alert.Table.sql',
+	      'ras_ext_sp_alert.fmt']
+
+    ld[''] = ['',
+	      'ras_mem_pricing_lev.template',
+	      'dbo.ras_mem_pricing_lev.Table.sql',
+	      'ras_mem_pricing_lev.fmt']
+
     return ld
 
 # --- process

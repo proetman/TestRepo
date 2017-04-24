@@ -24,7 +24,7 @@ INSERT #persl_skillTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}persl_skill.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

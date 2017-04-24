@@ -28,7 +28,7 @@ INSERT #TermTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}Term.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

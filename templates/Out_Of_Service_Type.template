@@ -23,7 +23,7 @@ INSERT #OOSTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}out_of_service_type.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

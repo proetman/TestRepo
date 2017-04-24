@@ -25,7 +25,7 @@ INSERT #respTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}resp_tme.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

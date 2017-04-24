@@ -36,7 +36,7 @@ INSERT #Def_VehicTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}def_vehic.fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

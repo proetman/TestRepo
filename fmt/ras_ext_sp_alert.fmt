@@ -1,0 +1,14 @@
+11.0
+12
+1       SQLCHAR             0       12      "\t"     1     alert_id             ""
+2       SQLCHAR             0       16      "\t"     2     cdts                 Latin1_General_CI_AS
+3       SQLCHAR             0       12      "\t"     3     cpers                ""
+4       SQLCHAR             0       15      "\t"     4     cterm                Latin1_General_CI_AS
+5       SQLCHAR             0       30      "\t"     5     expiry               ""
+6       SQLCHAR             0       1000    "\t"     6     message              Latin1_General_CI_AS
+7       SQLCHAR             0       12      "\t"     7     priority             ""
+8       SQLCHAR             0       100     "\t"     8     subject              Latin1_General_CI_AS
+9       SQLCHAR             0       16      "\t"     9     udts                 Latin1_General_CI_AS
+10      SQLCHAR             0       10      "\t"     10    unid                 Latin1_General_CI_AS
+11      SQLCHAR             0       12      "\t"     11    upers                ""
+12      SQLCHAR             0       15      "\r\n"   12    uterm                Latin1_General_CI_AS

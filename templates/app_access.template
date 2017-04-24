@@ -1,0 +1,167 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#app_accessTMP') IS NOT NULL
+DROP TABLE #app_accessTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50))
+
+CREATE TABLE #app_accessTMP
+    (
+	ag_id	varchar(9),
+	app_type	varchar(15),
+	current_access	varchar(1),
+	current_access_saved	varchar(1),
+	current_visibility	varchar(1),
+	default_access	varchar(1),
+	default_visibility	varchar(1),
+	dgroup	varchar(5),
+	empid	int,
+	id	varchar(15),
+	id_type varchar(1),
+	max_access	varchar(1),
+	udts	varchar(16)
+    )
+
+
+BULK
+INSERT #app_accessTMP 
+FROM '{vTSVFile}'
+WITH
+(
+FORMATFILE = '{vFmtFile}',
+FIRSTROW = 2
+);
+
+
+Declare @Vag_id	varchar(9)
+Declare @Vapp_type	varchar(15)
+Declare @Vcurrent_access	varchar(1)
+Declare @Vcurrent_access_saved	varchar(1)
+Declare @Vcurrent_visibility	varchar(1)
+Declare @Vdefault_access	varchar(1)
+Declare @Vdefault_visibility	varchar(1)
+Declare @Vdgroup	varchar(5)
+Declare @Vempid	int
+Declare @Vid	varchar(15)
+Declare @Vid_type varchar(1)
+Declare @Vmax_access	varchar(1)
+Declare @Vudts	varchar(16)
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	ag_id,
+	app_type,
+	current_access,
+	current_access_saved,
+	current_visibility,
+	default_access,
+	default_visibility,
+	dgroup,
+	empid,
+	id,
+	id_type,
+	max_access,
+	udts
+
+FROM #app_accessTMP
+order by id asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vag_id,
+@Vapp_type,
+@Vcurrent_access,
+@Vcurrent_access_saved,
+@Vcurrent_visibility,
+@Vdefault_access,
+@Vdefault_visibility,
+@Vdgroup,
+@Vempid,
+@Vid,
+@Vid_type,
+@Vmax_access,
+@Vudts
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vid
+
+insert into app_access(
+	ag_id,
+	app_type,
+	current_access,
+	current_access_saved,
+	current_visibility,
+	default_access,
+	default_visibility,
+	dgroup,
+	empid,
+	id,
+	id_type,
+	max_access,
+	udts
+)
+
+values (
+@Vag_id,
+@Vapp_type,
+@Vcurrent_access,
+@Vcurrent_access_saved,
+@Vcurrent_visibility,
+@Vdefault_access,
+@Vdefault_visibility,
+@Vdgroup,
+@Vempid,
+@Vid,
+@Vid_type,
+@Vmax_access,
+@Vudts
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Vid))
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vag_id,
+@Vapp_type,
+@Vcurrent_access,
+@Vcurrent_access_saved,
+@Vcurrent_visibility,
+@Vdefault_access,
+@Vdefault_visibility,
+@Vdgroup,
+@Vempid,
+@Vid,
+@Vid_type,
+@Vmax_access,
+@Vudts
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

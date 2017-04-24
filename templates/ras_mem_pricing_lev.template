@@ -1,0 +1,98 @@
+Use {vDB}
+
+IF OBJECT_ID('#ras_mem_pricing_levTMP') IS NOT NULL
+DROP TABLE #ras_mem_pricing_levTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50))
+
+CREATE TABLE #ras_mem_pricing_levTMP
+    (
+	discount_type varchar(20),
+	mem_product_id int,
+	price_level int
+    )
+
+
+BULK
+INSERT #ras_mem_pricing_levTMP
+FROM '{vTSVFile}'
+WITH
+(
+FORMATFILE = '{vFmtFile}',
+FIRSTROW = 2
+);
+
+
+Declare @Vdiscount_type varchar(20)
+Declare @Vmem_product_id int
+declare @Vprice_level int
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	discount_type,
+	mem_product_id,
+	price_level
+
+FROM #ras_mem_pricing_levTMP
+order by mem_product_id asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vdiscount_type,
+@Vmem_product_id,
+@Vprice_level
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vmem_product_id
+
+insert into ras_mem_pricing_lev(
+discount_type,
+mem_product_id,
+price_level
+
+)
+
+values (
+@Vdiscount_type,
+@Vmem_product_id,
+@Vprice_level
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Vmem_product_id))
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vdiscount_type,	
+@Vmem_product_id,
+@Vprice_level
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

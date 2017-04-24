@@ -63,7 +63,7 @@ INSERT #test1
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}persl.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

@@ -1,25 +1,25 @@
 Use {vDB}
 
-IF OBJECT_ID('tempdb..#OOSATMP') IS NOT NULL
-DROP TABLE #OOSATMP;
+IF OBJECT_ID('tempdb..#def_unit_restr_ag_availTMP') IS NOT NULL
+DROP TABLE #def_unit_restr_ag_availTMP;
 GO
 
 IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
 DROP TABLE #Upload_Errors;
 GO
 
-create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
+create table #Upload_Errors(Record varchar(50))
 
-CREATE TABLE #OOSATMP
+CREATE TABLE #def_unit_restr_ag_availTMP
     (
 	ag_id varchar(9),
-	alert_timer int,
-	tycod varchar(16)
+	unid varchar(10)
+	
     )
 
 
 BULK
-INSERT #OOSATMP 
+INSERT #def_unit_restr_ag_availTMP
 FROM '{vTSVFile}'
 WITH
 (
@@ -29,8 +29,8 @@ FIRSTROW = 2
 
 
 Declare @Vag_id varchar(9)
-Declare @Valert_timer int
-Declare @Vtycod varchar(16)
+Declare @Vunid varchar(10)
+
 
 
 
@@ -39,11 +39,11 @@ FOR
 
 SELECT 
 	ag_id,
-	alert_timer,
-	tycod
+	unid
+	
 
-FROM #OOSATMP
-order by tycod asc
+FROM #def_unit_restr_ag_availTMP
+order by unid asc
 
 OPEN LoopCursor
 
@@ -52,26 +52,25 @@ Fetch next from LoopCursor
 into 
 
 @Vag_id,
-@Valert_timer,
-@Vtycod
+@Vunid
+
 
 while @@FETCH_STATUS = 0
 
 begin
 begin try
-print @Vtycod
+print @Vunid
 
-insert into Upload_Test.dbo.out_of_service_type_agency(
+insert into def_unit_restr_ag_avail(
 ag_id,
-alert_timer,
-tycod
+unid
+
 
 )
 
 values (
 @Vag_id,
-@Valert_timer,
-@Vtycod
+@Vunid
 
 )
 end try
@@ -79,7 +78,7 @@ end try
 begin catch
 
 
-insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vtycod, ERROR_MESSAGE())
+insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Vunid))
 
 end catch 
 
@@ -87,8 +86,7 @@ end catch
 fetch next 
 from LoopCursor into 
 @Vag_id,	
-@Valert_timer,
-@Vtycod
+@Vunid
 
 end 
 close LoopCursor

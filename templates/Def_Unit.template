@@ -63,7 +63,7 @@ INSERT #DEF_UnitTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}Def_Unit.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

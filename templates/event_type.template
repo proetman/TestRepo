@@ -44,7 +44,7 @@ INSERT #EvTypeTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}event_type.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

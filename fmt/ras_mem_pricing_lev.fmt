@@ -1,0 +1,5 @@
+11.0
+3
+1       SQLCHAR             0       20      "\t"     1     discount_type                    Latin1_General_CI_AS
+2       SQLCHAR             0       12      "\t"     2     mem_product_id                   ""
+3       SQLCHAR             0       12      "\r\n"   3     price_level                      ""

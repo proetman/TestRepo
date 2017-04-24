@@ -1,0 +1,98 @@
+Use {vDB}
+
+IF OBJECT_ID('tempdb..#Def_EquipTMP') IS NOT NULL
+DROP TABLE #Def_EquipTMP;
+GO
+
+IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
+DROP TABLE #Upload_Errors;
+GO
+
+create table #Upload_Errors(Record varchar(50))
+
+CREATE TABLE #def_equipTMP
+    (
+	carid varchar(12),
+	equip varchar(10),
+	num_equip int
+    )
+
+
+BULK
+INSERT #def_equipTMP 
+FROM '{vTSVFile}'
+WITH
+(
+FORMATFILE = '{vFmtFile}',
+FIRSTROW = 2
+);
+
+
+Declare @Vcarid varchar(12)
+Declare @Vequip varchar(10)
+Declare @Vnum_equip int
+
+
+
+DECLARE LoopCursor CURSOR FAST_FORWARD
+FOR 
+
+SELECT 
+	carid,
+	equip,
+	num_equip
+
+FROM #def_equipTMP
+order by carid asc
+
+OPEN LoopCursor
+
+Fetch next from LoopCursor
+
+into 
+
+@Vcarid,
+@Vequip,
+@Vnum_equip
+
+while @@FETCH_STATUS = 0
+
+begin
+begin try
+print @Vcarid
+
+insert into def_equip(
+carid,
+equip,
+num_equip
+
+)
+
+values (
+@Vcarid,
+@Vequip,
+@Vnum_equip
+
+)
+end try
+
+begin catch
+
+
+insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Vcarid))
+
+end catch 
+
+
+fetch next 
+from LoopCursor into 
+@Vcarid,	
+@Vequip,
+@Vnum_equip
+
+end 
+close LoopCursor
+Deallocate LoopCursor
+
+select * 
+from #Upload_Errors

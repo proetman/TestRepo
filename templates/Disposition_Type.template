@@ -24,7 +24,7 @@ INSERT #DPTMP
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtDir}Disposition_Type.Fmt',
+FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 

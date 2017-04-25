@@ -41,31 +41,38 @@ def setup_load_details():
 
     ld['term'] = ['term - {vClub}__TERM.tsv',
                   'Term.template',
-                  'dbo.term.Table.sql']
+                  'dbo.term.Table.sql',
+                  '']
 
     ld['personnel'] = ['personnel - {vClub}__PERSL',
                        'Persl.template',
-                       'dbo.persl.Table.sql']
+                       'dbo.persl.Table.sql',
+                       '']
 
     ld['disposition codes'] = ['disposition codes__DISPOSITION_TYPE.tsv',
                                'Disposition_Type.template',
-                               'dbo.disposition_type.Table.sql']
+                               'dbo.disposition_type.Table.sql',
+                               '']
 
     ld['skills'] = ['skills - {vClub}__PERSL_SKILL.tsv',
                     'persl_skill.template',
-                    'dbo.persl_skill.Table.sql']
+                    'dbo.persl_skill.Table.sql',
+                    '']
 
     ld['vehicles'] = ['vehicles - {vClub}__DEF_VEHIC.tsv',
                       'Def_Vehic.template',
-                      'dbo.def_vehic.Table.sql']
+                      'dbo.def_vehic.Table.sql',
+                      '']
 
     ld['units'] = ['units - {vClub}__DEF_UNIT.tsv',
                    'Def_Unit.template',
-                   'dbo.def_unit.Table.sql']
+                   'dbo.def_unit.Table.sql',
+                   '']
 
     ld['eta table'] = ['eta table - {vClub}__ETA.tsv',
                        'resp_tme.template',
-                       'dbo.resp_tme.Table.sql']
+                       'dbo.resp_tme.Table.sql',
+                       '']
 
     ld['out of service type agency'] = ['out of service type agency__OUT_OF_SERVICE_TYPE_AGENCY.tsv',
                                         'Out_Of_Service_Type_Agency.template',
@@ -79,30 +86,30 @@ def setup_load_details():
                                   'Out_Of_Service_Type.template',
                                   'dbo.out_of_service_type.Table.sql']
 
-    ld[''] = ['',
-	      'app_access.template',
-	      'dbo.app_access.Table.sql',
-	      'app_access.fmt']
+    ld['term app access - inetveiwer'] = ['term app access - inetveiwer - {vClub}__APP_ACCESS.tsv',
+                                          'app_access.template',
+                                          'dbo.app_access.Table.sql',
+                                          'app_access.fmt']
 
-    ld[''] = ['',
-	      'def_equip.template',
-	      'dbo.def_equip.Table.sql',
-	      'def_equip.fmt']
+    ld['vehicle equipment'] = ['vehicle equipment - {vClub}__VEHICLE_EQUIPMENT.tsv',
+                               'def_equip.template',
+                               'dbo.def_equip.Table.sql',
+                               'def_equip.fmt']
 
-    ld[''] = ['',
-	      'def_unit_restr_ag_avail.template',
-	      'dbo.def_unit_restr_ag_avail.Table.sql',
-	      'def_unit_restr_ag_avail']
+    ld['unit agency restriction'] = ['unit agency restriction - {vClub}__DEF_UNIT_RESTR_AG_AVAIL.tsv',
+                                     'def_unit_restr_ag_avail.template',
+                                     'dbo.def_unit_restr_ag_avail.Table.sql',
+                                     'def_unit_restr_ag_avail']
 
-    ld[''] = ['',
-	      'ras_ext_sp_alert.template',
-	      'dbo.ras_ext_sp_alert.Table.sql',
-	      'ras_ext_sp_alert.fmt']
+    ld['esp alerts'] = ['esp alerts - {vClub}__ALERTS.tsv',
+                        'ras_ext_sp_alert.template',
+                        'dbo.ras_ext_sp_alert.Table.sql',
+                        'ras_ext_sp_alert.fmt']
 
-    ld[''] = ['',
-	      'ras_mem_pricing_lev.template',
-	      'dbo.ras_mem_pricing_lev.Table.sql',
-	      'ras_mem_pricing_lev.fmt']
+    ld['membership pricing level (surefire)'] = ['membership pricing level (surefire)__RAS_MEM_PRICING-LEV.tsv',
+                                                 'ras_mem_pricing_lev.template',
+                                                 'dbo.ras_mem_pricing_lev.Table.sql',
+                                                 'ras_mem_pricing_lev.fmt']
 
     return ld
 

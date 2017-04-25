@@ -1,0 +1,5 @@
+11.0
+3
+1       SQLCHAR             0       1       "\t"     1     can_dispatch                 Latin1_General_CI_AS
+2       SQLCHAR             0       80      "\t"     2     eng                          Latin1_General_CI_AS
+3       SQLCHAR             0       16      "\r\n"   3     tycod                        Latin1_General_CI_AS

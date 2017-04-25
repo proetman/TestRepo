@@ -1,0 +1,10 @@
+11.0
+8
+1       SQLCHAR             0       1       "\t"     1     current_callback_term                          Latin1_General_CI_AS
+2       SQLCHAR             0       1       "\t"     2     default_callback_term                          Latin1_General_CI_AS
+3       SQLCHAR             0       50      "\t"     3     description                                    Latin1_General_CI_AS
+4       SQLCHAR             0       50      "\t"     4     domain                                         Latin1_General_CI_AS
+5       SQLCHAR             0       12      "\t"     5     fsa_opid                                       ""
+6       SQLCHAR             0       12      "\t"     6     mux_id                                         ""
+7       SQLCHAR             0       1       "\t"     7     remote_only                                    Latin1_General_CI_AS
+8       SQLCHAR             0       15      "\r\n"   8     term                                           Latin1_General_CI_AS

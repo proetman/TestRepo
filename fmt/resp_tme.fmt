@@ -1,0 +1,7 @@
+11.0
+5
+1       SQLCHAR             0       9       "\t"     1     ag_id            Latin1_General_CI_AS
+2       SQLCHAR             0       5       "\t"     2     dgroup           Latin1_General_CI_AS
+3       SQLCHAR             0       1       "\t"     3     dow              Latin1_General_CI_AS
+4       SQLCHAR             0       12      "\t"     4     eta              ""
+5       SQLCHAR             0       2       "\r\n"   5     hod              Latin1_General_CI_AS

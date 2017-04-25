@@ -1,0 +1,15 @@
+11.0
+13
+1       SQLCHAR             0       12      "\t"     1     ack_timer                            ""
+2       SQLCHAR             0       9       "\t"     2     ag_id                                Latin1_General_CI_AS
+3       SQLCHAR             0       12      "\t"     3     arrive_timer                         ""
+4       SQLCHAR             0       12      "\t"     4     carid                                Latin1_General_CI_AS
+5       SQLCHAR             0       12      "\t"     5     delay_value                          ""
+6       SQLCHAR             0       12      "\t"     6     disp_timer                           ""
+7       SQLCHAR             0       12      "\t"     7     enroute_timer                        ""
+8       SQLCHAR             0       12      "\t"     8     max_ht                               ""
+9       SQLCHAR             0       12      "\t"     9     max_wd                               ""
+10      SQLCHAR             0       12      "\t"     10    max_wt                               ""
+11      SQLCHAR             0       12      "\t"     11    page_id                              Latin1_General_CI_AS
+12      SQLCHAR             0       7       "\t"     12    page_unit_person                     ""
+13      SQLCHAR             0       1       "\r\n"   13    vflag                                Latin1_General_CI_AS

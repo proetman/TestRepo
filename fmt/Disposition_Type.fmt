@@ -1,0 +1,6 @@
+11.0
+4
+1       SQLCHAR             0       9       "\t"     1     ag_id                      Latin1_General_CI_AS
+2       SQLCHAR             0       12      "\t"     2     case_num_id                ""
+3       SQLCHAR             0       80      "\t"     3     eng                        Latin1_General_CI_AS
+4       SQLCHAR             0       16      "\r\n"   4     tycod                      Latin1_General_CI_AS

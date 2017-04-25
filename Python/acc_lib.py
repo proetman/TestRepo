@@ -534,8 +534,13 @@ def open_ss2(p_ss):
 
         # remove file extension
         cache_loc_short = cache_loc.split('.xlsx')[0]
+        if cache_loc_short == 'C:/test_results/data/h5_cache/users/paul/australian club consortium pty ltd/phase 3 - deploy phase - phase 3/cars data and data management/data templates by club/raa/external service supplier management (cps)/external service supplier_raa':
+            x = 1
+
+        print('cache loc short = [[{}]]'.format(cache_loc_short))
 
         for key, value in l_df_dict.items():
+            print('                  save key: {}'.format(key))
             log_debug('                  save key: {}'.format(key))
             cache_loc_key = cache_loc_short + '__' + key + '__.h5'
             log_debug('                          : {}'.format(cache_loc_key))

@@ -42,49 +42,52 @@ def setup_load_details():
     ld['term'] = ['term - {vClub}__TERM.tsv',
                   'Term.template',
                   'dbo.term.Table.sql',
-                  '']
+                  'term.fmt']
 
     ld['personnel'] = ['personnel - {vClub}__PERSL',
                        'Persl.template',
                        'dbo.persl.Table.sql',
-                       '']
+                       'Persl.fmt']
 
     ld['disposition codes'] = ['disposition codes__DISPOSITION_TYPE.tsv',
                                'Disposition_Type.template',
                                'dbo.disposition_type.Table.sql',
-                               '']
+                               'Disposition_Type.fmt']
 
     ld['skills'] = ['skills - {vClub}__PERSL_SKILL.tsv',
                     'persl_skill.template',
                     'dbo.persl_skill.Table.sql',
-                    '']
+                    'persl_skill.fmt_NOT_YET_EXISTS']
 
     ld['vehicles'] = ['vehicles - {vClub}__DEF_VEHIC.tsv',
                       'Def_Vehic.template',
                       'dbo.def_vehic.Table.sql',
-                      '']
+                      'def_vehic.fmt']
 
     ld['units'] = ['units - {vClub}__DEF_UNIT.tsv',
                    'Def_Unit.template',
                    'dbo.def_unit.Table.sql',
-                   '']
+                   'def_unit.fmt']
 
     ld['eta table'] = ['eta table - {vClub}__ETA.tsv',
                        'resp_tme.template',
                        'dbo.resp_tme.Table.sql',
-                       '']
+                       'resp_tme.fmt']
 
     ld['out of service type agency'] = ['out of service type agency__OUT_OF_SERVICE_TYPE_AGENCY.tsv',
                                         'Out_Of_Service_Type_Agency.template',
-                                        'dbo.out_of_service_type_agency.Table.sql']
+                                        'dbo.out_of_service_type_agency.Table.sql',
+                                        'Out_Of_Service_Type_Agency.fmt']
 
     ld['event types and sub-types'] = ['event types and sub-types__EVENT_TYPES_AND_SUB_TYPES_DATA.tsv',
                                        'event_type.template',
-                                       'dbo.event_type.Table.sql']
+                                       'dbo.event_type.Table.sql',
+                                       'event_type.fmt']
 
     ld['out of service codes'] = ['out of service codes__OUT_OF_SERVICE_TYPE.tsv',
                                   'Out_Of_Service_Type.template',
-                                  'dbo.out_of_service_type.Table.sql']
+                                  'dbo.out_of_service_type.Table.sql',
+                                  'Out_Of_Service_Type.fmt']
 
     ld['term app access - inetveiwer'] = ['term app access - inetveiwer - {vClub}__APP_ACCESS.tsv',
                                           'app_access.template',
@@ -134,6 +137,7 @@ def process(p_dir, p_ld, p_conn_details, p_work_dict):
     l_sheet_name = l_details[0]
     l_template = l_details[1]
     l_create_table = l_details[2]
+    l_fmt_file = l_details[3]
     # l_create_table ='dbo.def_unit.Table.sql'
 
     l_data_dir = p_dir['data']
@@ -158,11 +162,12 @@ def process(p_dir, p_ld, p_conn_details, p_work_dict):
     for tsv_file in tsv_results:
         alib.p_i('        Load file {}'.format(tsv_file))
 
-        l_fmt_tmp_file = create_tmp_fmt_file(l_code_dir, l_temp_dir, p_conn_details, l_template, tsv_file)
+        l_template_tmp_file = create_tmp_template_file(l_code_dir, l_temp_dir, p_conn_details,
+                                                       l_template, tsv_file, l_fmt_file)
 
         run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
                                                                          vInstance=p_conn_details['instance'],
-                                                                         vSql=l_fmt_tmp_file.replace('/', '\\'))
+                                                                         vSql=l_template_tmp_file.replace('/', '\\'))
 
         run_fmt_job(run_sql_cmd)
 
@@ -246,7 +251,7 @@ def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file):
 # --------------------------------------------------------------------
 
 
-def create_tmp_fmt_file(p_code_dir, p_data_dir, p_conn_details, p_template, p_tsv_file):
+def create_tmp_template_file(p_code_dir, p_tmp_dir, p_conn_details, p_template, p_tsv_file, p_fmt_file):
     """
     create a fmt file that has all the variables replaced.
     """
@@ -254,25 +259,26 @@ def create_tmp_fmt_file(p_code_dir, p_data_dir, p_conn_details, p_template, p_ts
 
     l_schema = p_conn_details['schema']
 
-    l_fmt_file = p_code_dir + '/templates/' + p_template
+    l_template_file = p_code_dir + '/templates/' + p_template
+    l_fmt_file = p_code_dir + '/fmt/' + p_fmt_file
 
-    alib.log_debug('    fmt file      : {}'.format(l_fmt_file.replace('/', '\\')))
+    alib.log_debug('    fmt file      : {}'.format(l_template_file.replace('/', '\\')))
 
-    l_fmt_data = read_file(l_fmt_file)
-    l_data_dir = p_data_dir.replace('/', '\\')
+    l_template_data = read_file(l_template_file)
+    l_data_dir = p_tmp_dir.replace('/', '\\')
     l_data_dir = l_data_dir + '\\'
 
     l_new_data = []
-    for line in l_fmt_data:
+    for line in l_template_data:
         l_new_data.append(line.format(vDB=l_schema,
-                                      vFmtDir=l_data_dir,
+                                      vFmtFile=l_fmt_file,
                                       vTSVFile=p_tsv_file))
 
-    l_fmt_target_file = p_data_dir + '/' + p_template + '.sql'
+    l_template_target_file = p_tmp_dir + '/' + p_template + '.sql'
 
-    write_file(l_fmt_target_file, l_new_data)
+    write_file(l_template_target_file, l_new_data)
 
-    return l_fmt_target_file
+    return l_template_target_file
 
 # --------------------------------------------------------------------
 #
@@ -403,7 +409,7 @@ def initialise():
           """, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--target_db',
-                        help='DB Connection: "localhost" or instance.user@host:db',
+                        help='DB Connection: "localhost" or paul@win-khgvd5br678\Adventureworks2014:dbo',
                         required=True)
 
     parser.add_argument('--club_dir',

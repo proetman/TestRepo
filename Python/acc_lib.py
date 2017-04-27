@@ -602,6 +602,7 @@ def open_ss(p_ss):
     try:
         ss_df_dict = pd.read_excel(l_ss,
                                    sheetname=None,
+                                   na_values=['NUL','NULL'],
                                    index_col=None)
 
     except FileNotFoundError as err:

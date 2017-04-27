@@ -94,5 +94,9 @@ end
 close LoopCursor
 Deallocate LoopCursor
 
-select * 
+:setvar SQLCMDMAXVARTYPEWIDTH 0
+:setvar SQLCMDMAXFIXEDTYPEWIDTH 0
+
+select Record, err_msg
 from #Upload_Errors
+

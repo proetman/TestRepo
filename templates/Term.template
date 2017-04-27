@@ -80,7 +80,7 @@ begin
 begin try
 print @Vterm
 
-insert into Upload_Test.dbo.term(
+insert into term(
 
 current_callback_term,
 default_callback_term,
@@ -132,5 +132,9 @@ end
 close LoopCursor
 Deallocate LoopCursor
 
-select * 
+:setvar SQLCMDMAXVARTYPEWIDTH 0
+:setvar SQLCMDMAXFIXEDTYPEWIDTH 0
+
+select Record, err_msg
 from #Upload_Errors
+

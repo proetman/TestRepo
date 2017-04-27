@@ -18,8 +18,8 @@ import re
 # import time
 # import math
 
-# import numpy as np
-# import pandas as pd
+import numpy as np
+import pandas as pd
 
 import acc_lib as alib
 
@@ -131,6 +131,53 @@ def tgsv_pre_process(p_df):
     True
 
     """
+
+    # ------------------------------------------------
+
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    # ------------------------------------------------
+
+    def is_int(s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+    # ------------------------------------------------
+
+#    def clean_numb(p_field):
+#        print('start with {}'.format(p_field))
+#        if math.isnan(p_field):
+#            print('    return from NAN'.format(p_field))
+#            return p_field
+#
+#        if p_field is None:
+#            print('    return from None'.format(p_field))
+#            return p_field
+#        if isinstance(p_field, datetime.date) :
+#            print('    return from Data field'.format(p_field))
+#            return p_field
+#
+#        if is_number(p_field):
+#            if is_int(p_field):
+#               p_field = int(p_field)
+#               print('    return {}'.format(p_field))
+#               return p_field
+
+    # -------------------------------------------------
+
+#    def my_convert(x):
+#        try:
+#            return x.astype(int)
+#        except:
+#            return x
+    # -------------------------------------------------
     def clean_text(p_field):
         """
         Lambda function to replace characters that bryte cannot tolerate
@@ -185,10 +232,28 @@ def tgsv_pre_process(p_df):
             # remove trailing spaces
             new_field = re.sub(' *$', '', new_field)
 
+            if is_number(new_field):
+                if new_field[-2:] == ".0":
+                    new_field = new_field[:-2]
+
         return new_field
 
-    # start_str = 'Start pre_process size of p_df = [{}]'
-    # rqlib.log_debug(start_str.format(len(p_df.index)))
+    # -------------------------------------------------
+
+    # Determine which columns are numeric
+    numeric_cols = p_df.select_dtypes(include=['float64'])
+    # loop through the numeric columns
+    for col in numeric_cols:
+        # first remove any NaN, replace with empty string
+        p_df[col].fillna('', inplace=True)
+        # then convert all remaining values to a string data type.
+        p_df[col] = p_df[col].astype(str)
+
+
+#    for col in numeric_cols:
+#        print('COL:{}'.format(col))
+#        p_df[col] = p_df[col].apply(lambda x: clean_numb(x))
+
     str_col = p_df.select_dtypes(include=['object'])
     for col in str_col.columns:
         p_df[col] = p_df[col].apply(lambda x: clean_text(x))
@@ -233,7 +298,7 @@ def tsvg_validate_col_headings(p_df):
 # --------------------------------------------------------------------
 
 
-def tsv_generate(p_list, p_tsv_dir):
+def tsv_generate(p_list, p_tsv_dir, p_file_like):
     """
     Perform some quick and dirty analsys on the files
     """
@@ -245,7 +310,19 @@ def tsv_generate(p_list, p_tsv_dir):
             short_name = '/'.join(f.split('/')[-3:])
         else:
             short_name = '/'.join(f.split('/')[-4:])
-        print(short_name)
+
+        if p_file_like is not None:
+            if p_file_like.upper() in short_name.upper():
+                pass
+            else:
+                alib.log_debug('FILE_LIKE param says skip file {}'.format(short_name))
+                continue
+        # print(short_name)
+
+#        if('units - ract' in short_name):
+#            x = 1
+#        else:
+#            continue
 
         l_ss = alib.open_ss2(f)
 
@@ -254,6 +331,7 @@ def tsv_generate(p_list, p_tsv_dir):
             continue
 
         alib.cleanup_ss(l_ss)
+
 
         for key, value in l_ss.items():
             # Now have a single tab from the spreadsheet as a dataframe
@@ -289,13 +367,13 @@ def tsv_generate(p_list, p_tsv_dir):
 # --------------------------------------------------------------------
 
 
-def process_files(p_files, p_tsv_dir):
+def process_files(p_files, p_tsv_dir, p_file_like):
     """
     Perform some quick and dirty analsys on the files
     """
 
-    tsv_generate(p_files['c'], p_tsv_dir)
-    tsv_generate(p_files['cc'], p_tsv_dir)
+    tsv_generate(p_files['c'], p_tsv_dir, p_file_like)
+    tsv_generate(p_files['cc'], p_tsv_dir, p_file_like)
 
     return
 
@@ -361,6 +439,11 @@ def initialise(p_filename):
                         action='store_true',
                         required=False)
 
+    parser.add_argument('--file_like',
+                        help='only process the file if it has a name like this',
+                        default=None,
+                        required=False)
+
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -405,11 +488,13 @@ def main():
     print('Loading files from {}'.format(work_dir['l_c_dir']))
     work_files = alib.load_files(work_dir, args['quick_debug'])
 
+    p_file_like = args['file_like']
+
     #    work_dict = alib.load_matching_masterfile(work_files)
     #    alib.load_tags(work_dict)
     #    alib.print_filenames(work_dict)
 
-    process_files(work_files, tsv_dir)
+    process_files(work_files, tsv_dir, p_file_like)
 
     alib.p_i('Done...')
 

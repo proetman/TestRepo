@@ -18,11 +18,11 @@ CREATE TABLE #DEF_UnitTMP
 	break_earliest_time varchar(16),
 	break_latest_time varchar(16),
 	break_start_time varchar(16),
-	break_taken varchar(1),
+	break_taken varchar(10),
 	dgroup varchar(5),
 	end_shift_loc_x int,
 	end_shift_loc_y int,
-	ext_unitattr varbinary(32) DEFAULT (0x0000000000000000000000000000000000000000000000000000000000000000),
+	ext_unitattr varbinary(64) DEFAULT (0x0000000000000000000000000000000000000000000000000000000000000000),
 	hourly_cost_sp float(53),
 	lev3 varchar(7),
 	loc_comm varchar(40),
@@ -370,5 +370,10 @@ end
 close LoopCursor
 Deallocate LoopCursor
 
-select * 
+:setvar SQLCMDMAXVARTYPEWIDTH 0
+:setvar SQLCMDMAXFIXEDTYPEWIDTH 0
+
+select Record, err_msg
 from #Upload_Errors
+
+

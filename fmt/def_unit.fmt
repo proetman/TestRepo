@@ -6,11 +6,11 @@
 4       SQLCHAR             0       16      "\t"     4     break_earliest_time                          Latin1_General_CI_AS
 5       SQLCHAR             0       16      "\t"     5     break_latest_time                            Latin1_General_CI_AS
 6       SQLCHAR             0       16      "\t"     6     break_start_time                             Latin1_General_CI_AS
-7       SQLCHAR             0       1       "\t"     7     break_taken                                  Latin1_General_CI_AS
+7       SQLCHAR             0       3       "\t"     7     break_taken                                  Latin1_General_CI_AS
 8       SQLCHAR             0       5       "\t"     8     dgroup                                       Latin1_General_CI_AS
 9       SQLCHAR             0       12      "\t"     9     end_shift_loc_x                              ""
 10      SQLCHAR             0       12      "\t"     10    end_shift_loc_y                              ""
-11      SQLCHAR             0       64      "\t"     11    ext_unitattr                                 ""
+11      SQLCHAR             0       64      "\t"     00    ext_unitattr                                 ""
 12      SQLCHAR             0       30      "\t"     12    hourly_cost_sp                               ""
 13      SQLCHAR             0       7       "\t"     13    lev3                                         Latin1_General_CI_AS
 14      SQLCHAR             0       40      "\t"     14    loc_comm                                     Latin1_General_CI_AS

@@ -1,5 +1,5 @@
 11.0
-43
+44
 1       SQLCHAR             0       9       "\t"     1     ag_id                          Latin1_General_CI_AS
 2       SQLCHAR             0       30      "\t"     2     app_type                       Latin1_General_CI_AS
 3       SQLCHAR             0       5       "\t"     3     bl_typ                         Latin1_General_CI_AS
@@ -39,7 +39,8 @@
 37      SQLCHAR             0       12      "\t"     37    pid                            ""
 38      SQLCHAR             0       128     "\t"     38    pswrd                          Latin1_General_CI_AS
 39      SQLCHAR             0       12      "\t"     39    pswrd_hash_id                  ""
-40      SQLCHAR             0       12      "\t"     40    rms_id                         ""
-41      SQLCHAR             0       4       "\t"     41    soundex                        Latin1_General_CI_AS
-42      SQLCHAR             0       15      "\t"     42    term                           Latin1_General_CI_AS
-43      SQLCHAR             0       20      "\r\n"   43    usr_id                         Latin1_General_CI_AS
+40      SQLCHAR             0       10      "\t"     40    ras_club_code                  Latin1_General_CI_AS
+41      SQLCHAR             0       12      "\t"     41    rms_id                         ""
+42      SQLCHAR             0       4       "\t"     42    soundex                        Latin1_General_CI_AS
+43      SQLCHAR             0       15      "\t"     43    term                           Latin1_General_CI_AS
+44      SQLCHAR             0       20      "\r\n"   44    usr_id                         Latin1_General_CI_AS

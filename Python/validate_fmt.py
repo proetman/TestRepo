@@ -44,7 +44,7 @@ def setup_load_details():
                   'dbo.term.Table.sql',
                   'term.fmt']
 
-    ld['personnel'] = ['personnel - {vClub}__PERSL',
+    ld['personnel'] = ['personnel - {vClub}__PERSL.tsv',
                        'Persl.template',
                        'dbo.persl.Table.sql',
                        'Persl.fmt']
@@ -160,7 +160,8 @@ def process(p_dir, p_ld, p_conn_details, p_work_dict):
     run_job(run_sql_cmd)
 
     for tsv_file in tsv_results:
-        alib.p_i('        Load file {}'.format(tsv_file))
+        alib.p_i('')
+        alib.p_i('        Load file {}'.format(tsv_file.replace('/', '\\')))
 
         l_template_tmp_file = create_tmp_template_file(l_code_dir, l_temp_dir, p_conn_details,
                                                        l_template, tsv_file, l_fmt_file)
@@ -194,6 +195,7 @@ def fetch_tsv_file(p_work_dict, p_short_name, p_sheet_name, p_data_dir):
     tsv_results = []
 
     for key, value in p_work_dict.items():
+        # -- handle the club files
         if value['tag'] == p_short_name:
 
             short_name = value['club_file_short']
@@ -207,6 +209,22 @@ def fetch_tsv_file(p_work_dict, p_short_name, p_sheet_name, p_data_dir):
                 tsv_name = p_data_dir + '/common data templates/' + l_dir + '/' + l_sheet
 
             tsv_results.append(tsv_name)
+
+        # -- handle the "common" files
+        if value['tag'] is None and value['type'] == 'club common':
+            if p_short_name in value['club_file_short']:
+
+                short_name = value['club_file_short']
+                club_type = value['type']
+                l_sheet = p_sheet_name.format(vClub=value['club'])
+                l_dir = '/'.join(short_name.split('/')[:-1])
+
+                if club_type == 'club':
+                    tsv_name = p_data_dir + '/data templates by club/' + l_dir + '/' + l_sheet
+                else:
+                    tsv_name = p_data_dir + '/common data templates/' + l_dir + '/' + l_sheet
+
+                tsv_results.append(tsv_name)
 
     return tsv_results
 
@@ -340,9 +358,13 @@ def run_fmt_job(p_cmd):
 
     output, error = job.communicate()
 
-    if b'Error in insert' in output:
+    mod_output = output.decode('ascii')
+    if('Error in insert' in mod_output or
+       'Bulk load data conversion error' in mod_output or
+       'Cannot insert the value' in mod_output or
+       'Msg ' in mod_output):
         alib.p_e('        Errors found, please review log file')
-        alib.p_e('        output = {}'.format(output))
+        alib.log_error('{}'.format(mod_output))
     else:
         alib.p_i('        Success')
         alib.log_debug('        output = {}'.format(output))
@@ -452,6 +474,11 @@ def initialise():
                         default='c:/temp',
                         required=False)
 
+    parser.add_argument('--short_code',
+                        help='only run "short_name" load',
+                        required=False)
+
+
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -537,9 +564,33 @@ def main():
 
     # -------------------------------------
     # -- Fetch the tables to process
+    #
+    #    Valid short codes
+    #    -----------------
+    #    term
+
+    # p1   personnel                               -- round 1 error check complete.
+    # p3   event types and sub-types
+    # p4   disposition codes                       -- round 1 error check complete.
+    # p7   eta table
+    # p9   out of service codes
+    # p11  out of service type agency
+    # p11  vehicles
+    # p12  units                                   -- round 1 error check complete.
+    # p15  membership pricing level (surefire)
+    # p46  esp alerts
+    # p47  skills
+    # p48  vehicle equipment
+    # p65  term app access - inetveiwer
+    # p99  unit agency restriction
+
+    # p2 personnel node access
 
     load_details = setup_load_details()
     for ld in load_details.items():
+        if args['short_code'] is not None:
+            if args['short_code'] != ld[0]:
+                continue
         process(my_work_dir, ld, connect_details, work_dict)
 
     db_conn.close()

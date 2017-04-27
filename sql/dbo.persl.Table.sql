@@ -114,7 +114,7 @@ ALTER TABLE [dbo].[persl]  WITH CHECK ADD  CONSTRAINT [persl_pswrd_hash_id_ck] C
 GO
 ALTER TABLE [dbo].[persl] CHECK CONSTRAINT [persl_pswrd_hash_id_ck]
 GO
-ALTER TABLE [dbo].[persl]  WITH CHECK ADD  CONSTRAINT [persl_pswrd_hash_null_ck] CHECK  (([pswrd] IS NULL AND [pswrd_hash_id] IS NULL OR [pswrd] IS NOT NULL AND [pswrd_hash_id] IS NOT NULL))
+ALTER TABLE [dbo].[persl]  WITH CHECK ADD  CONSTRAINT [persl_pswrd_hash_null_ck] CHECK  (([pswrd] IS NULL AND [pswrd_hash_id] IS NULL) OR ([pswrd] IS NOT NULL AND [pswrd_hash_id] IS NOT NULL))
 GO
 ALTER TABLE [dbo].[persl] CHECK CONSTRAINT [persl_pswrd_hash_null_ck]
 GO

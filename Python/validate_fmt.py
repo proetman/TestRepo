@@ -49,6 +49,11 @@ def setup_load_details():
                        'dbo.persl.Table.sql',
                        'Persl.fmt']
 
+    ld['personnel node access'] = ['personnel node access - {vClub}__NODEN.tsv',
+                                   'Noden.template',
+                                   'dbo.noden.Table.sql',
+                                   'noden.fmt']
+
     ld['disposition codes'] = ['disposition codes__DISPOSITION_TYPE.tsv',
                                'Disposition_Type.template',
                                'dbo.disposition_type.Table.sql',
@@ -102,7 +107,7 @@ def setup_load_details():
     ld['unit agency restriction'] = ['unit agency restriction - {vClub}__DEF_UNIT_RESTR_AG_AVAIL.tsv',
                                      'def_unit_restr_ag_avail.template',
                                      'dbo.def_unit_restr_ag_avail.Table.sql',
-                                     'def_unit_restr_ag_avail']
+                                     'def_unit_restr_ag_avail.fmt']
 
     ld['esp alerts'] = ['esp alerts - {vClub}__ALERTS.tsv',
                         'ras_ext_sp_alert.template',
@@ -289,8 +294,8 @@ def create_tmp_template_file(p_code_dir, p_tmp_dir, p_conn_details, p_template, 
     l_new_data = []
     for line in l_template_data:
         l_new_data.append(line.format(vDB=l_schema,
-                                      vFmtFile=l_fmt_file,
-                                      vTSVFile=p_tsv_file))
+                                      vFmtFile=l_fmt_file.replace('/', '\\'),
+                                      vTSVFile=p_tsv_file.replace('/', '\\')))
 
     l_template_target_file = p_tmp_dir + '/' + p_template + '.sql'
 
@@ -570,21 +575,21 @@ def main():
     #    term
 
     # p1   personnel                               -- round 1 error check complete.
-    # p3   event types and sub-types
+    # p2   personnel node access                   -- round 1 error check complete.
+    # p3   event types and sub-types               -- round 0 error check complete - (shannon)
     # p4   disposition codes                       -- round 1 error check complete.
-    # p7   eta table
-    # p9   out of service codes
-    # p11  out of service type agency
-    # p11  vehicles
+    # p7   eta table                               -- round 1 error check complete.
+    # p9   out of service codes                    -- round 1 error check complete.
+    # p11  out of service type agency              -- round 1 error check complete.
+    # p11  vehicles                                -- round 1 error check complete.
     # p12  units                                   -- round 1 error check complete.
-    # p15  membership pricing level (surefire)
-    # p46  esp alerts
+    # p15  membership pricing level (surefire)     -- round 1 error check complete.
+    # p46  esp alerts                              -- coding
     # p47  skills
     # p48  vehicle equipment
     # p65  term app access - inetveiwer
-    # p99  unit agency restriction
+    # p99  unit agency restriction                 -- round 1 in prog - duplicates to report.
 
-    # p2 personnel node access
 
     load_details = setup_load_details()
     for ld in load_details.items():

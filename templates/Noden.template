@@ -1,7 +1,7 @@
 Use {vDB}
 
-IF OBJECT_ID('tempdb..#def_unit_restr_ag_availTMP') IS NOT NULL
-DROP TABLE #def_unit_restr_ag_availTMP;
+IF OBJECT_ID('tempdb..#NodenTMP') IS NOT NULL
+DROP TABLE #NodenTMP;
 GO
 
 IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
@@ -10,17 +10,16 @@ GO
 
 create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
 
-CREATE TABLE #def_unit_restr_ag_availTMP
+CREATE TABLE #NodenTMP
     (
-	ag_id varchar(9),
-	unid varchar(10)
-	
+	empid int,
+	term varchar(15)
     )
 
 
 BULK
-INSERT #def_unit_restr_ag_availTMP
-FROM '{vTSVFile}'
+INSERT #NodenTMP 
+FROM'{vTSVFile}' 
 WITH
 (
 FORMATFILE = '{vFmtFile}',
@@ -28,9 +27,8 @@ FIRSTROW = 2
 );
 
 
-Declare @Vag_id varchar(9)
-Declare @Vunid varchar(10)
-
+Declare @Vempid int
+Declare @Vterm varchar(15)
 
 
 
@@ -38,12 +36,11 @@ DECLARE LoopCursor CURSOR FAST_FORWARD
 FOR 
 
 SELECT 
-	ag_id,
-	unid
-	
+	empid,
+	term
 
-FROM #def_unit_restr_ag_availTMP
-order by unid asc
+FROM #NodenTMP
+order by empid asc
 
 OPEN LoopCursor
 
@@ -51,26 +48,24 @@ Fetch next from LoopCursor
 
 into 
 
-@Vag_id,
-@Vunid
-
+@Vempid,
+@Vterm
 
 while @@FETCH_STATUS = 0
 
 begin
 begin try
-print @Vunid
+print @Vempid
 
-insert into def_unit_restr_ag_avail(
-ag_id,
-unid
-
+insert into noden(
+empid,
+term
 
 )
 
 values (
-@Vag_id,
-@Vunid
+@Vempid,
+@Vterm
 
 )
 end try
@@ -78,16 +73,15 @@ end try
 begin catch
 
 
-insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vunid), ERROR_MESSAGE())
-
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+  convert(Varchar(10),@Vempid), ERROR_MESSAGE())
 
 end catch 
 
 
 fetch next 
 from LoopCursor into 
-@Vag_id,	
-@Vunid
+@Vempid,	
+@Vterm
 
 end 
 close LoopCursor
@@ -98,5 +92,3 @@ Deallocate LoopCursor
 
 select Record, err_msg
 from #Upload_Errors
-
-

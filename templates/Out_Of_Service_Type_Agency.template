@@ -61,7 +61,7 @@ begin
 begin try
 print @Vtycod
 
-insert into Upload_Test.dbo.out_of_service_type_agency(
+insert into out_of_service_type_agency(
 ag_id,
 alert_timer,
 tycod

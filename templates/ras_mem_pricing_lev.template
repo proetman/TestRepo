@@ -8,7 +8,7 @@ IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
 DROP TABLE #Upload_Errors;
 GO
 
-create table #Upload_Errors(Record varchar(50))
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
 
 CREATE TABLE #ras_mem_pricing_levTMP
     (
@@ -79,7 +79,7 @@ end try
 begin catch
 
 
-insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Vmem_product_id))
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vmem_product_id), ERROR_MESSAGE())
 
 end catch 
 

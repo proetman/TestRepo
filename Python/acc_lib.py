@@ -534,8 +534,6 @@ def open_ss2(p_ss):
 
         # remove file extension
         cache_loc_short = cache_loc.split('.xlsx')[0]
-        if cache_loc_short == 'C:/test_results/data/h5_cache/users/paul/australian club consortium pty ltd/phase 3 - deploy phase - phase 3/cars data and data management/data templates by club/raa/external service supplier management (cps)/external service supplier_raa':
-            x = 1
 
         print('cache loc short = [[{}]]'.format(cache_loc_short))
 
@@ -602,7 +600,12 @@ def open_ss(p_ss):
     try:
         ss_df_dict = pd.read_excel(l_ss,
                                    sheetname=None,
-                                   na_values=['NUL','NULL'],
+                                   keep_default_na=False,   # must exclude default 'NA'
+                                   na_values=['NUL', 'NULL',
+                                              # The remainder are the default, exclude 'NA'
+                                              '', '#N/A', '#N/A', 'N/A', '#NA', '-1.#IND', '-1.#QNAN',
+                                              '-NaN', '-nan', '1.#IND', '1.#QNAN', 'N/A', 'NULL',
+                                              'NaN', 'nan'],
                                    index_col=None)
 
     except FileNotFoundError as err:

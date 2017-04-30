@@ -77,8 +77,7 @@ values (
 @Vag_id,
 @Vcase_num_id,
 @Veng,
-@Vtycod
-
+replace(str(@Vtycod,3),' ','0')
 )
 end try
 

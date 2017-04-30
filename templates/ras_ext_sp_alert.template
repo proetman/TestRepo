@@ -8,23 +8,14 @@ IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
 DROP TABLE #Upload_Errors;
 GO
 
-create table #Upload_Errors(Record varchar(50))
+create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
 
 CREATE TABLE #ras_ext_sp_alertTMP
     (
-	alert_id	int,
-	cdts	varchar(16),
-	cpers	int,
-	cterm	varchar(15),
-	expiry	datetime2,
-	[message]	varchar(1000),
-	[priority]	int,
-	[subject]	varchar(100),
-	udts	varchar(16),
 	unid	varchar(10),
-	upers	int,
-	uterm	varchar(15)
-	
+	[subject]	varchar(100),
+	expiry	datetime2,
+	[message]	varchar(1000)
     )
 
 
@@ -37,41 +28,21 @@ FORMATFILE = '{vFmtFile}',
 FIRSTROW = 2
 );
 
-
-Declare @Valert_id	int
-Declare @Vcdts	varchar(16)
-Declare @Vcpers	int
-Declare @Vcterm	varchar(15)
+Declare @Vunid	varchar(10)
+Declare @Vsubject	varchar(100)
 Declare @Vexpiry	datetime2
 Declare @Vmessage	varchar(1000)
-Declare @Vpriority	int
-Declare @Vsubject	varchar(100)
-Declare @Vudts	varchar(16)
-Declare @Vunid	varchar(10)
-Declare @Vupers	int
-Declare @Vuterm	varchar(15)
-
-
 
 DECLARE LoopCursor CURSOR FAST_FORWARD
 FOR 
 
 SELECT 
-	alert_id,
-	cdts,
-	cpers,
-	cterm,
-	expiry,
-	[message],
-	[priority],
-	[subject],
-	udts,
 	unid,
-	upers,
-	uterm
-
+	[subject],
+	expiry,
+	[message]
 FROM #ras_ext_sp_alertTMP
-order by alert_id asc
+order by unid asc
 
 OPEN LoopCursor
 
@@ -79,24 +50,23 @@ Fetch next from LoopCursor
 
 into 
 
-@Valert_id,
-@Vcdts,
-@Vcpers,
-@Vcterm,
-@Vexpiry,
-@Vmessage,
-@Vpriority,
+@Vunid,    
 @Vsubject,
-@Vudts,
-@Vunid,
-@Vupers,
-@Vuterm
+@Vexpiry,
+@Vmessage
+DECLARE @cnt int
+set @cnt = (select max(alert_id) + 1 from ras_ext_sp_alert)
+
+if @cnt is null
+    set @cnt = 999
 
 while @@FETCH_STATUS = 0
 
 begin
 begin try
-print @Valert_id
+print @Vunid    
+
+set @cnt = @cnt + 1
 
 insert into ras_ext_sp_alert(
 	alert_id,
@@ -114,48 +84,45 @@ insert into ras_ext_sp_alert(
 )
 
 values (
-@Valert_id,
-@Vcdts,
-@Vcpers,
-@Vcterm,
-@Vexpiry,
+@cnt,                       -- auto increment local var
+'20170501000000UT',          -- @Vcdts,
+10000001,                    -- @Vcpers,
+'acctstapp101',              -- @Vcterm,
+'9999-01-01',                -- @Vexpiry,
 @Vmessage,
-@Vpriority,
+0,                           -- @Vpriority,
 @Vsubject,
-@Vudts,
+null,                        -- @Vudts,
 @Vunid,
-@Vupers,
-@Vuterm
-
+null,                        -- @Vupers,
+null                         -- @Vuterm
 )
+
 end try
 
 begin catch
 
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ @Vunid, ERROR_MESSAGE())
 
-insert into #Upload_Errors(Record) values ( 'Error in insert '+ convert(Varchar(10),@Valert_id))
 
 end catch 
 
 
 fetch next 
 from LoopCursor into 
-@Valert_id,
-@Vcdts,
-@Vcpers,
-@Vcterm,
-@Vexpiry,
-@Vmessage,
-@Vpriority,
-@Vsubject,
-@Vudts,
 @Vunid,
-@Vupers,
-@Vuterm
+@Vsubject,
+@Vexpiry,
+@Vmessage
 
 end 
 close LoopCursor
 Deallocate LoopCursor
+
+update numbr
+set n_num = @cnt + 500
+where purpose = 'Ext SP Alert ID'
+
 
 :setvar SQLCMDMAXVARTYPEWIDTH 0
 :setvar SQLCMDMAXFIXEDTYPEWIDTH 0

@@ -45,7 +45,7 @@ FROM '{vTSVFile}'
 WITH
 (
 FORMATFILE = '{vFmtFile}',
-FIRSTROW = 2
+FIRSTROW = 3
 );
 
 
@@ -174,9 +174,9 @@ values (
 	@Vadvised_event,
 	@Vag_id,
 	@Varrive_timer,
-	@Vassign_case_state,
+	0,                     -- assign case state
 	@Vauto_response,
-	@Vcase_num_id,
+	null,                  -- case num id
 	@Vdays_avail,
 	@Vdisp_req,
 	@Vdispatch_timer,
@@ -184,10 +184,10 @@ values (
 	@Venroute_timer,
 	@Vinitial_callback_timer,
 	@Vloi_dist,
-	@Vmajevt_id,
+	null,                   -- majevt id
 	@Vnear_dist,
 	@Vpending_timer,
-	@Vpending_timer_default,
+	20,                     -- pending timer default
 	@Vpriority,
 	@Vrepeat_callback_timer,
 	@Vsub_eng,

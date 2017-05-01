@@ -7,9 +7,10 @@ from __future__ import print_function
 
 import argparse
 import re
-import numpy as np
+# import numpy as np
 import pandas as pd
 import textwrap
+import datetime
 
 # Import racq library for RedShift
 
@@ -20,10 +21,193 @@ import acc_lib as alib
 #
 #             Global /  Constants
 #
-# ------------------------------------------------------------------
+# --------------------------------------------------------------------
+
+# --- conv utils
+# ------------------------------------------------
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+def clean_text(p_field):
+    """
+    Lambda function to replace characters that bryte cannot tolerate
+    """
+    dodgy_char = '’'
+    dodgy_char2 = '‘'
+    dodgy_char3 = '–'
+    dodgy_char4 = '”'
+    dodgy_char5 = '“'
+    dodgy_char6 = '…'
+    dodgy_char7 = '\r'
+    dodgy_char8 = '\n'
+    dodgy_char10 = '\t'
+    dodgy_char12 = '–'
+    dodgy_char15 = '‐'      # This is a different hyphon
+
+    dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii. Every field is terminated with it.
+    dodgy_char21 = '·'      # another bizarre hyphon
+    dodgy_char22 = '│'
+    dodgy_char23 = '√'
+
+#    if(p_field is None or
+#       isinstance(p_field, datetime.date) or
+#       not isinstance(p_field, str)):
+    if (p_field is None):
+        new_field = p_field
+    else:
+        #        if p_field[0:4].upper() == 'Alla'.upper():
+        #            print('    {}, len = {}'.format(p_field, len(p_field)))
+        #            x  = 1
+
+        new_field = re.sub(dodgy_char, "'", p_field)
+        new_field = re.sub(dodgy_char2, "'", new_field)
+        new_field = re.sub(dodgy_char3, "-", new_field)
+        new_field = re.sub(dodgy_char4, '"', new_field)
+        new_field = re.sub(dodgy_char5, '"', new_field)
+        new_field = re.sub(dodgy_char6, '.', new_field)
+        new_field = re.sub(dodgy_char7, ' ', new_field)
+        new_field = re.sub(dodgy_char8, ' ', new_field)
+        new_field = re.sub(dodgy_char10, ' ', new_field)
+        new_field = re.sub(dodgy_char12, '-', new_field)
+        new_field = re.sub(dodgy_char15, '-', new_field)
+
+        new_field = re.sub(dodgy_char20, ' ', new_field)
+        new_field = re.sub(dodgy_char21, '-', new_field)
+        new_field = re.sub(dodgy_char22, '|', new_field)
+        new_field = re.sub(dodgy_char23, ' ', new_field)
+
+        tmp_field = re.sub('[^ -~]', 'X', new_field)
+
+        if tmp_field != new_field:
+            alib.p_e('ERROR:  FOUND NON ASCII CHAR - PANIC')
+            alib.p_e('        orig data = [{}]'.format(new_field))
+            alib.p_e('        mod  data = [{}]'.format(tmp_field))
+
+        # remove trailing spaces
+        new_field = re.sub(' *$', '', new_field)
+
+        if is_number(new_field):
+            if new_field[-2:] == ".0":
+                new_field = new_field[:-2]
+
+    return new_field
+
+# --- process
+# --------------------------------------------------------------------
+#
+#                          setup load details
+#
+# --------------------------------------------------------------------
+
+
+def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
+    """
+    process a load dict
+    """
+    retval = alib.SUCCESS
+    l_short_name = p_ld[0]
+    l_details = p_ld[1]
+
+    print('processing LD[0] = {}'.format(l_short_name))
+
+    l_sheet_name = l_details[0]
+
+    # --------------------------------------------------------------------
+    # Fetch the table data, all in one dataframe
+
+    l_create_table = l_details[2]
+    l_compare_table = l_create_table.split('.')[1]
+
+    tab_col_df = alib.fetch_tab_col(p_conn_details['conn'])             # Fetch ALL table column info
+    cols_df = alib.fetch_columns(tab_col_df, l_compare_table)    # Narrow down to a single table
+    l_target_df = fetch_table(p_conn_details, l_compare_table, cols_df)
+
+    # --------------------------------------------------------------------
+    # Fetch the spreadsheet data, merge all clubs into one dataframe.
+
+    first_df = True
+
+    for key, value in p_work_dict.items():
+        # -- handle the club files
+        if value['tag'] == l_short_name:
+            # short_name = value['club_file_short']
+            # club_type = value['type']
+            l_sheet = l_sheet_name.format(vClub=value['club'])
+
+            # find the name of the spreadsheet TAB to compare, start with "personnel - {vClub}__PERSL.tsv"
+            l_tmp = l_sheet.split('__')[1]
+            l_ss_tab = l_tmp.split('.')[0]
+
+            # l_dir = '/'.join(short_name.split('/')[:-1])
+            l_ss = alib.open_ss2(value['club_file_full'])
+            l_ss = capitalize_keys(l_ss)
+
+            if first_df:
+                l_df = l_ss[l_ss_tab]
+                l_df2 = l_df.where((pd.notnull(l_df)), None)
+                for col in l_df.columns:
+                    l_df2[col] = l_df2[col].astype(str)
+                    l_df2[col] = l_df2[col].apply(lambda x: clean_text(x))
+
+                l_source_df = l_df2
+                first_df = False
+            else:
+                l_df = l_ss[l_ss_tab]
+                l_df2 = l_df.where((pd.notnull(l_df)), None)
+                for col in l_df.columns:
+                    l_df2[col] = l_df2[col].astype(str)
+                    l_df2[col] = l_df2[col].apply(lambda x: clean_text(x))
+
+                l_source_df = l_source_df.append(l_df2)
+
+    # --------------------------------------------------------------------
+    # Now start the process of comparing table to spreadsheet
+
+    #    x = l_source_df['USR_ID'] == 'allan0l'
+    #    l_source_df = l_source_df[x]
+
+    my_result, s_df, t_df = alib.tab_compare_df(l_source_df, l_target_df, l_compare_table)
+
+    if my_result:
+        alib.p_i('... Compare OK for {} ....'.format(l_compare_table))
+        retval = alib.SUCCESS
+    else:
+        if p_debug_type is not None:
+            alib.debug_results(p_debug_type, s_df, t_df, l_compare_table)
+        alib.p_e('... Compare failed for {} ....'.format(l_compare_table))
+        retval = alib.FAIL_GENERIC
+
+    return retval
+# --------------------------------------------------------------------
+#
+#                          capitalize keys
+#
+# --------------------------------------------------------------------
+
+
+def capitalize_keys(d):
+    """
+    create a new empty dict
+    assign the new key to be the uppercase version of the old key
+    create new key with the value from the old dict
+    return the new dict.
+    """
+
+    result = {}
+
+    for key, value in d.items():
+        upper_key = key.upper()
+        result[upper_key] = value
+
+    return result
 
 # --- Fetch Info
-
 # --------------------------------------------------------------------
 #
 #                          read xlsx
@@ -154,6 +338,9 @@ def fetch_table(p_condet, p_table, p_cols_df):
                select {vCols}
                from   {vSchema}.{vDB}.{vTab}
                '''
+
+    # where USR_ID = 'allan0l'
+
     _sql = _sql_template.format(vCols=_sql_cols,
                                 vSchema=p_condet['schema'],
                                 vDB=p_condet['db'],
@@ -318,19 +505,46 @@ def initialise(p_filename):
     Run on Terminal Server:
     -d DEBUG -t table -f file.xlsx  --target_db instance.user@host:db (this may change)
     -d DEBUG -t table -f file.csv   --target_db instance.user@host:db (this may change)
+
+    --target_db localhost
+    --short_code "unit agency restriction"
+
           """, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--target_db',
                         help='DB Connection: "localhost" or instance.user@host:db',
                         required=True)
 
-    parser.add_argument('-t', '--table',
-                        help='Table name for compare',
-                        required=True)
+    parser.add_argument('--short_code',
+                        help='only run "short_name" load',
+                        required=False)
 
-    parser.add_argument('-f', '--filename',
-                        help='File name for compare (csv or xlsx)',
-                        required=True)
+
+    parser.add_argument('--club_dir',
+                        help='club files directory',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--club_common_dir',
+                        help='club common files directory',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--m_dir',
+                        help='master directory',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--mc_dir',
+                        help='master common directory',
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--all_dir',
+                        help='directory containing all of the above',
+                        default=None,
+                        required=False)
+
 
     # Add debug arguments
     parser.add_argument('-d', '--debug',
@@ -389,7 +603,7 @@ def main():
         connect_details['host'] = 'localhost'
         connect_details['instance'] = 'SQLEXPRESS'
         connect_details['schema'] = 'AdventureWorks2012'
-        connect_details['db'] = 'HUMANRESOURCES'
+        connect_details['db'] = 'dbo'
 
     else:
         # running on terminal server
@@ -404,27 +618,54 @@ def main():
     # -------------------------------------
     # Fetch program arguments
 
-    p_table = args['table']
-    p_file = args['filename']
     p_debug_type = args['debug_type']
 
     # -------------------------------------
-    # -- Fetch the tables to process
-    tab_col_df = alib.fetch_tab_col(db_conn)             # Fetch ALL table column info
-    cols_df = alib.fetch_columns(tab_col_df, p_table)    # Narrow down to a single table
-    target_df = fetch_table(connect_details, p_table, cols_df)
-    source_df = fetch_file(p_file, cols_df)
+    # -- Fetch setup data
 
-    my_result, s_df, t_df = alib.tab_compare_df(source_df, target_df, p_table)
+    work_dir = alib.load_dir(args)
+    work_files = alib.load_files(work_dir)
 
-    if my_result:
-        alib.p_i('... Compare OK for {} ....'.format(p_table))
-        retval = alib.SUCCESS
-    else:
-        if p_debug_type is not None:
-            alib.debug_results(p_debug_type, source_df, target_df, p_table)
-        alib.p_e('... Compare failed for {} ....'.format(p_table))
-        retval = alib.FAIL_GENERIC
+    work_dict = alib.load_matching_masterfile(work_files, p_load_excel=False)
+
+    alib.load_tags(work_dict)
+
+    # -- end standard setup
+
+    load_details = alib.setup_load_details()
+
+    # -------------------------------------
+    # -- loop through tables to process
+
+    #    Valid short codes
+    #    -----------------
+    #    term
+
+    # p1   personnel                               -- round 1 error check complete.
+    # p2   personnel node access                   -- round 1 error check complete.
+    # p3   event types and sub-types               -- round 1 error check complete - (shannon)
+    # p4   disposition codes                       -- round 1 error check complete.
+    # p7   eta table                               -- round 1 error check complete.
+    # p9   out of service codes                    -- round 1 error check complete.
+    # p11  out of service type agency              -- round 1 error check complete.
+    # p11  vehicles                                -- round 1 error check complete.
+    # p12  units                                   -- round 1 error check complete.
+    # p15  membership pricing level (surefire)     -- round 1 error check complete.
+    # p46  esp alerts                              -- round 1 error check complete.
+    # p47  skills                                  -- round 1 error check complete.
+    # p48  vehicle equipment                       -- round 1 error check complete.
+    # p65  term app access - inetveiwer            -- round 1 all files loaded successfully.
+    # p99  unit agency restriction                 -- round 1 error check complete.
+
+
+    retval = alib.SUCCESS
+
+    for ld in load_details.items():
+        if args['short_code'] is not None:
+            if args['short_code'] != ld[0]:
+                continue
+        process(ld, connect_details, work_dict, p_debug_type)
+
 
     db_conn.close()
     return retval

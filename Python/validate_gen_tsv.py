@@ -353,7 +353,7 @@ def tsv_generate(p_list, p_tsv_dir, p_file_like):
                 l_tab_df.to_csv(l_target_filename,
                                 sep='\t',
                                 index=False,
-                                date_format='%d-%m-%Y  %H:%M:%S')
+                                date_format='%Y-%m-%d %H:%M:%S')
 
                 tsvg_validate(l_target_filename)
 

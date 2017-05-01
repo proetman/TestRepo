@@ -88,7 +88,7 @@ values (
 '20170501000000UT',          -- @Vcdts,
 10000001,                    -- @Vcpers,
 'acctstapp101',              -- @Vcterm,
-'9999-01-01',                -- @Vexpiry,
+@Vexpiry,
 @Vmessage,
 0,                           -- @Vpriority,
 @Vsubject,

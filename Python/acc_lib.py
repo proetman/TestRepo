@@ -111,6 +111,105 @@ MAIL_FOOTER = """\
 """
 
 MAIL_FROM_USER = 'noreply@racq.com.au'
+# --- load details
+# --------------------------------------------------------------------
+#
+#                          setup load details
+#
+# --------------------------------------------------------------------
+
+
+def setup_load_details():
+    """
+    create a dict of all load details
+    """
+
+    ld = {}
+
+    ld['term'] = ['term - {vClub}__TERM.tsv',
+                  'Term.template',
+                  'dbo.term.Table.sql',
+                  'term.fmt']
+
+    ld['personnel'] = ['personnel - {vClub}__PERSL.tsv',
+                       'Persl.template',
+                       'dbo.persl.Table.sql',
+                       'Persl.fmt']
+
+    ld['personnel node access'] = ['personnel node access - {vClub}__NODEN.tsv',
+                                   'Noden.template',
+                                   'dbo.noden.Table.sql',
+                                   'noden.fmt']
+
+    ld['disposition codes'] = ['disposition codes__DISPOSITION_TYPE.tsv',
+                               'Disposition_Type.template',
+                               'dbo.disposition_type.Table.sql',
+                               'Disposition_Type.fmt']
+
+    ld['skills'] = ['skills - {vClub}__PERSL_SKILL.tsv',
+                    'persl_skill.template',
+                    'dbo.persl_skill.Table.sql',
+                    'persl_skill.fmt']
+
+    ld['vehicles'] = ['vehicles - {vClub}__DEF_VEHIC.tsv',
+                      'Def_Vehic.template',
+                      'dbo.def_vehic.Table.sql',
+                      'def_vehic.fmt']
+
+    ld['units'] = ['units - {vClub}__DEF_UNIT.tsv',
+                   'Def_Unit.template',
+                   'dbo.def_unit.Table.sql',
+                   'def_unit.fmt']
+
+    ld['eta table'] = ['eta table - {vClub}__ETA.tsv',
+                       'resp_tme.template',
+                       'dbo.resp_tme.Table.sql',
+                       'resp_tme.fmt']
+
+    ld['out of service type agency'] = ['out of service type agency__OUT_OF_SERVICE_TYPE_AGENCY.tsv',
+                                        'Out_Of_Service_Type_Agency.template',
+                                        'dbo.out_of_service_type_agency.Table.sql',
+                                        'Out_Of_Service_Type_Agency.fmt']
+
+    ld['event types and sub-types'] = ['event types and sub-types__EVENT_TYPES_AND_SUB_TYPES_DATA.tsv',
+                                       'event_type.template',
+                                       'dbo.event_type.Table.sql',
+                                       'event_type.fmt']
+
+    ld['out of service codes'] = ['out of service codes__OUT_OF_SERVICE_TYPE.tsv',
+                                  'Out_Of_Service_Type.template',
+                                  'dbo.out_of_service_type.Table.sql',
+                                  'Out_Of_Service_Type.fmt']
+
+    ld['term app access - inetveiwer'] = ['term app access - inetveiwer - {vClub}__APP_ACCESS.tsv',
+                                          'app_access.template',
+                                          'dbo.app_access.Table.sql',
+                                          'app_access.fmt']
+
+    ld['vehicle equipment'] = ['vehicle equipment - {vClub}__VEHICLE_EQUIPMENT.tsv',
+                               'def_equip.template',
+                               'dbo.def_equip.Table.sql',
+                               'def_equip.fmt']
+
+    ld['unit agency restriction'] = ['unit agency restriction - {vClub}__DEF_UNIT_RESTR_AG_AVAIL.tsv',
+                                     'def_unit_restr_ag_avail.template',
+                                     'dbo.def_unit_restr_ag_avail.Table.sql',
+                                     'def_unit_restr_ag_avail.fmt']
+
+    ld['esp alerts'] = ['esp alerts - {vClub}__ALERTS.tsv',
+                        'ras_ext_sp_alert.template',
+                        'dbo.ras_ext_sp_alert.Table.sql',
+                        'ras_ext_sp_alert.fmt']
+
+    ld['membership pricing level (surefire)'] = ['membership pricing level (surefire)__RAS_MEM_PRICING-LEV.tsv',
+                                                 'ras_mem_pricing_lev.template',
+                                                 'dbo.ras_mem_pricing_lev.Table.sql',
+                                                 'ras_mem_pricing_lev.fmt']
+
+    return ld
+
+
+# --- TSV stuff
 # --------------------------------------------------------------------
 #
 #                          create dir
@@ -394,7 +493,8 @@ def tab_compare_log_diff(p_pd1, p_pd2, p_tab):
             p_top_100 = 100
         else:
             p_top_100 = len(pd1_not_printed.index)
-        print_df = pd1_not_printed.select_dtypes(exclude=['object'])
+        # print_df = pd1_not_printed.select_dtypes(exclude=['object'])
+        print_df = pd1_not_printed
         printstr = tabulate.tabulate(print_df.head(n=p_top_100), headers='keys',
                                      tablefmt='psql',
                                      floatfmt='0.2f')
@@ -409,7 +509,8 @@ def tab_compare_log_diff(p_pd1, p_pd2, p_tab):
             p_top_100 = 100
         else:
             p_top_100 = len(pd2_not_printed.index)
-        print_df = pd2_not_printed.select_dtypes(exclude=['object'])
+        # print_df = pd2_not_printed.select_dtypes(exclude=['object'])
+        print_df = pd2_not_printed
         printstr = tabulate.tabulate(print_df.head(n=p_top_100), headers='keys',
                                      tablefmt='psql',
                                      floatfmt='0.2f')

@@ -6,13 +6,12 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+# import datetime
 import re
+import textwrap
+
 # import numpy as np
 import pandas as pd
-import textwrap
-import datetime
-
-# Import racq library for RedShift
 
 import acc_lib as alib
 
@@ -26,12 +25,60 @@ import acc_lib as alib
 # --- conv utils
 # ------------------------------------------------
 
-def is_number(s):
+def is_number(l_str):
+    """ test to see if a string contains a numeric value only """
     try:
-        float(s)
+        float(l_str)
         return True
     except ValueError:
         return False
+
+# ------------------------------------------------
+
+def is_float(l_str):
+    """ test to see if a string contains a numeric value only """
+    try:
+        int(l_str)
+        return True
+    except ValueError:
+        return False
+
+# ------------------------------------------------
+
+
+def clean_nan(p_field):
+    """
+    Lambda function to replace nan with None
+    """
+    if p_field == 'nan':
+        new_field = None
+    else:
+        new_field = p_field
+
+    return new_field
+
+# ------------------------------------------------
+
+
+def clean_None(p_field):
+    """
+    Lambda function to replace nan with None
+    """
+    if p_field is None:
+        new_field = None
+    else:
+        new_field = p_field
+
+    return new_field
+
+# ------------------------------------------------
+
+
+def add_time(p_val):
+    retval = p_val + ' 00:00:00'
+    return retval
+
+# ------------------------------------------------
 
 
 def clean_text(p_field):
@@ -50,7 +97,8 @@ def clean_text(p_field):
     dodgy_char12 = '–'
     dodgy_char15 = '‐'      # This is a different hyphon
 
-    dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii. Every field is terminated with it.
+    dodgy_char20 = '\xa0'   # this is some kind of weird space, but is non ascii.
+    #                       # Every field is terminated with it.
     dodgy_char21 = '·'      # another bizarre hyphon
     dodgy_char22 = '│'
     dodgy_char23 = '√'
@@ -58,7 +106,7 @@ def clean_text(p_field):
 #    if(p_field is None or
 #       isinstance(p_field, datetime.date) or
 #       not isinstance(p_field, str)):
-    if (p_field is None):
+    if p_field is None:
         new_field = p_field
     else:
         #        if p_field[0:4].upper() == 'Alla'.upper():
@@ -89,12 +137,24 @@ def clean_text(p_field):
             alib.p_e('        orig data = [{}]'.format(new_field))
             alib.p_e('        mod  data = [{}]'.format(tmp_field))
 
+        if "example data" in tmp_field.lower():
+            alib.p_e('ERROR: EXAMPLE DATA string found in data')
+            alib.p_e('        orig data = [{}]'.format(p_field))
+
         # remove trailing spaces
         new_field = re.sub(' *$', '', new_field)
 
         if is_number(new_field):
             if new_field[-2:] == ".0":
                 new_field = new_field[:-2]
+
+        if new_field[:2] == '0x':
+            new_field = new_field[2:]
+
+        if is_number(new_field):
+            if is_float(new_field):
+                if new_field[-5:] == '00001':
+                    new_field = new_field[:-1]
 
     return new_field
 
@@ -128,15 +188,30 @@ def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
     cols_df = alib.fetch_columns(tab_col_df, l_compare_table)    # Narrow down to a single table
     l_target_df = fetch_table(p_conn_details, l_compare_table, cols_df)
 
+    l_target_df2 = l_target_df.where((pd.notnull(l_target_df)), None)
+    for col in l_target_df2.columns:
+        l_target_df2[col] = l_target_df2[col].astype(str)
+        l_target_df2[col] = l_target_df2[col].apply(lambda x: clean_text(x))
+        l_target_df2[col] = l_target_df2[col].apply(lambda x: clean_nan(x))
+
+    mask = l_target_df2.applymap(lambda x: x is None)
+    cols = l_target_df2.columns[(mask).any()]
+    for col in l_target_df2[cols]:
+        l_target_df2.loc[mask[col], col] = 'None'
+        # l_target_df2[col] = l_target_df2[col].apply(lambda x: clean_None(x))
+
+    l_target_df = l_target_df2
     # --------------------------------------------------------------------
     # Fetch the spreadsheet data, merge all clubs into one dataframe.
 
     first_df = True
+    count_loaded_df = 0
 
-    for key, value in p_work_dict.items():
+    for dummy_key, value in p_work_dict.items():
         # -- handle the club files
         if value['tag'] == l_short_name:
             # short_name = value['club_file_short']
+            count_loaded_df += 1
             # club_type = value['type']
             l_sheet = l_sheet_name.format(vClub=value['club'])
 
@@ -149,6 +224,11 @@ def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
             l_ss = capitalize_keys(l_ss)
 
             if first_df:
+                if l_ss_tab not in l_ss:
+                    tmp_tab = l_ss_tab.replace('_',' ')
+                    if tmp_tab in l_ss:
+                        l_ss_tab = tmp_tab
+
                 l_df = l_ss[l_ss_tab]
                 l_df2 = l_df.where((pd.notnull(l_df)), None)
                 for col in l_df.columns:
@@ -158,6 +238,11 @@ def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
                 l_source_df = l_df2
                 first_df = False
             else:
+                if l_ss_tab not in l_ss:
+                    tmp_tab = l_ss_tab.replace('_',' ')
+                    if tmp_tab in l_ss:
+                        l_ss_tab = tmp_tab
+
                 l_df = l_ss[l_ss_tab]
                 l_df2 = l_df.where((pd.notnull(l_df)), None)
                 for col in l_df.columns:
@@ -166,11 +251,26 @@ def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
 
                 l_source_df = l_source_df.append(l_df2)
 
+    # special case
+    if l_short_name == 'disposition codes':
+        l_source_df['TYCOD'] = l_source_df['TYCOD'].apply(lambda x: x.zfill(3))
+
+    # another special case
+    if l_short_name == 'esp alerts':
+        # match column headins (from spreadsheet) to that of the database
+        l_source_df.columns = ['UNID', 'SUBJECT', 'EXPIRY', 'MESSAGE']
+        l_source_df['EXPIRY'] = l_source_df['EXPIRY'].apply(lambda x: add_time(x))
+
     # --------------------------------------------------------------------
     # Now start the process of comparing table to spreadsheet
 
     #    x = l_source_df['USR_ID'] == 'allan0l'
     #    l_source_df = l_source_df[x]
+
+    if count_loaded_df == 0:
+        alib.p_e('ERROR: No DF loaded, not comparing')
+        alib.p_e('... Compare failed for {} ....'.format(l_compare_table))
+        return alib.FAIL_GENERIC
 
     my_result, s_df, t_df = alib.tab_compare_df(l_source_df, l_target_df, l_compare_table)
 
@@ -191,7 +291,7 @@ def process(p_ld, p_conn_details, p_work_dict, p_debug_type):
 # --------------------------------------------------------------------
 
 
-def capitalize_keys(d):
+def capitalize_keys(l_dict):
     """
     create a new empty dict
     assign the new key to be the uppercase version of the old key
@@ -201,7 +301,7 @@ def capitalize_keys(d):
 
     result = {}
 
-    for key, value in d.items():
+    for key, value in l_dict.items():
         upper_key = key.upper()
         result[upper_key] = value
 
@@ -294,27 +394,27 @@ def read_csv(p_csv):
 # --------------------------------------------------------------------
 
 
-def fetch_file(p_file, p_cols_df):
-    """
-    Fetch the data from file
-    """
-    alib.log_debug('Start fetch file')
-
-    l_file_extension = p_file.split('.')[-1]
-
-    l_is_xlsx = l_file_extension.lower() == 'xlsx'
-    l_is_csv = l_file_extension.lower() == 'csv'
-
-    if not l_is_xlsx and not l_is_csv:
-        alib.p_e('File must be an xlsx or csv for validation')
-        return None
-
-    if l_is_xlsx:
-        l_df = read_xlsx(p_file)
-    else:
-        l_df = read_csv(p_file)
-
-    return l_df
+#    def fetch_file(p_file, p_cols_df):
+#        """
+#        Fetch the data from file
+#        """
+#        alib.log_debug('Start fetch file')
+#
+#        l_file_extension = p_file.split('.')[-1]
+#
+#        l_is_xlsx = l_file_extension.lower() == 'xlsx'
+#        l_is_csv = l_file_extension.lower() == 'csv'
+#
+#        if not l_is_xlsx and not l_is_csv:
+#            alib.p_e('File must be an xlsx or csv for validation')
+#            return None
+#
+#        if l_is_xlsx:
+#            l_df = read_xlsx(p_file)
+#        else:
+#            l_df = read_csv(p_file)
+#
+#        return l_df
 
 
 # --------------------------------------------------------------------
@@ -372,13 +472,16 @@ def generate_sql_templates(p_col_type):
     determine which conversion to string is correct
     """
 
-    double_text = "round({vT}.[{vF}],6) as [{vF}]"
-    varbinary_text = "CONVERT(varchar(max),{vT}.[{vF}],2)"
+
+    # double_text = "round({vT}.[{vF}],6) as [{vF}]" forces panda to convert to sci notation.
+    double_text = "round({vT}.[{vF}],3) as [{vF}]"
+
+    varbinary_text = "CONVERT(varchar(max),{vT}.[{vF}],2) as [{vF}]"
     datems_text = "convert(varchar(30), {vT}.[{vF}], 121) as [{vF}]"
     date_text = "convert(varchar(30), {vT}.[{vF}], 121) as [{vF}]"
     time_text = "convert(varchar(30), {vT}.[{vF}], 108) as [{vF}]"
     str_text = "rtrim({vT}.[{vF}]) as [{vF}]"
-    default_text = "{vT}.{vF}"
+    default_text = "{vT}.{vF} as [{vF}]"
     clob_text = "' ' as {vF}"
 
     # -- Test for data types.
@@ -389,7 +492,7 @@ def generate_sql_templates(p_col_type):
     if 'VARBINARY' in l_col_type:
         l_type = 'binary'
 
-    elif 'DBFLT' in l_col_type or l_numb_float:
+    elif 'DBFLT' in l_col_type or l_numb_float or 'FLOAT' in l_col_type:
         l_type = 'float'
 
     elif 'DATETIME' in l_col_type or 'SMALLDATE' in l_col_type or 'TIMESTAMP' in l_col_type:
@@ -463,12 +566,49 @@ def generate_sql_columns(p_table, p_col_df):
 
     # -- Loop through columns, generating sql as you go.
     for dummy_i, row in p_col_df.iterrows():
+
         l_col_name = row['COLUMN']
         l_data_type = row['DATA_TYPE']
+
+        # Special Case for the event type table, these columns are NOT in the spreadsheet.
+        # so do not fetch the columns when generating the sql.
+        if p_table.upper() == 'EVENT_TYPE':
+            if l_col_name.upper() in ('ASSIGN_CASE_STATE', 'CASE_NUM_ID', 'MAJEVT_ID', 'PENDING_TIMER_DEFAULT'):
+                continue
 
         curr_str_template = generate_sql_templates(l_data_type)
 
         curr_str = curr_str_template.format(vF=l_col_name, vT=p_table)
+
+        # Special case - these fields are hard coded, no need to compare
+        if p_table.upper() == 'RAS_EXT_SP_ALERT':
+            if l_col_name.upper() in ('ALERT_ID',
+                                      'CDTS',
+                                      'CPERS',
+                                      'CTERM',
+                                      'PRIORITY',
+                                      'UDTS',
+                                      'UPERS',
+                                      'UTERM'):
+                continue
+
+        # special case
+        #        if p_table.upper() == 'EVENT_TYPE' and l_col_name.upper() == 'ADVISED_EVENT':
+        #            curr_str = """
+        #                       case
+        #                           when advised_event = 'F' then 'N'
+        #                           when advised_event = 'T' then 'Y'
+        #                           else                     null
+        #                       end   [ADVISED_EVENT] """
+
+        # special case
+        #        if p_table.upper() == 'EVENT_TYPE' and l_col_name.upper() == 'AUTO_RESPONSE':
+        #            curr_str = """
+        #                       case
+        #                           when auto_response = 'F' then 'N'
+        #                           when auto_response = 'T' then 'Y'
+        #                           else                     null
+        #                       end   [AUTO_RESPONSE] """
 
         # -- Add to cumulative string.
         if sql_columns is None:
@@ -519,7 +659,6 @@ def initialise(p_filename):
                         help='only run "short_name" load',
                         required=False)
 
-
     parser.add_argument('--club_dir',
                         help='club files directory',
                         default=None,
@@ -544,7 +683,6 @@ def initialise(p_filename):
                         help='directory containing all of the above',
                         default=None,
                         required=False)
-
 
     # Add debug arguments
     parser.add_argument('-d', '--debug',
@@ -574,6 +712,9 @@ def initialise(p_filename):
     # Sort though the arguments, ensure mandatory are populated
     args = alib.args_validate(parser, log_filename)
 
+    if args['all_dir'] is not None:
+        args['all_dir'] = alib.validate_dir_param(args['all_dir'])
+
     return (args, log_filename)
 
 # --------------------------------------------------------------------
@@ -588,7 +729,7 @@ def main():
     This program tests that data in CSV file matches data in a table.
     """
 
-    args, l_log_filename_s = initialise('validate_data')
+    args, dummy_l_log_filename_s = initialise('validate_data')
 
     # -- Initialise
     if not alib.init_app(args):
@@ -641,31 +782,29 @@ def main():
     #    -----------------
     #    term
 
-    # p1   personnel                               -- round 1 error check complete.
-    # p2   personnel node access                   -- round 1 error check complete.
-    # p3   event types and sub-types               -- round 1 error check complete - (shannon)
-    # p4   disposition codes                       -- round 1 error check complete.
-    # p7   eta table                               -- round 1 error check complete.
-    # p9   out of service codes                    -- round 1 error check complete.
-    # p11  out of service type agency              -- round 1 error check complete.
-    # p11  vehicles                                -- round 1 error check complete.
-    # p12  units                                   -- round 1 error check complete.
-    # p15  membership pricing level (surefire)     -- round 1 error check complete.
-    # p46  esp alerts                              -- round 1 error check complete.
-    # p47  skills                                  -- round 1 error check complete.
-    # p48  vehicle equipment                       -- round 1 error check complete.
-    # p65  term app access - inetveiwer            -- round 1 all files loaded successfully.
-    # p99  unit agency restriction                 -- round 1 error check complete.
-
+    # p1   personnel                               -- compare ok
+    # p2   personnel node access                   -- compare ok
+    # p3   event types and sub-types               -- compare ok
+    # p4   disposition codes                       -- compare ok (auto remove of duplicates)
+    # p7   eta table                               -- compare ok
+    # p9   out of service codes                    -- compare ok
+    # p11  out of service type agency              -- compare ok
+    # p11  vehicles                                -- vehicles - rac.xlsx, page unit person = 0
+    # p12  units                                   -- problem with floating point numbers
+    # p15  membership pricing level (surefire)     -- data fix - change from id to product code
+    # p46  esp alerts                              -- waiting on data fixes
+    # p47  skills                                  -- 8 extra rows in source ticket 9966
+    # p48  vehicle equipment                       -- waiting on RACT data
+    # p65  term app access - inetveiwer            -- compare ok
+    # p99  unit agency restriction                 -- compare ok
 
     retval = alib.SUCCESS
 
-    for ld in load_details.items():
+    for ldet in load_details.items():
         if args['short_code'] is not None:
-            if args['short_code'] != ld[0]:
+            if args['short_code'] != ldet[0]:
                 continue
-        process(ld, connect_details, work_dict, p_debug_type)
-
+        process(ldet, connect_details, work_dict, p_debug_type)
 
     db_conn.close()
     return retval
@@ -673,10 +812,10 @@ def main():
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    retval = main()
-    if retval == alib.SUCCESS:
+    l_retval = main()
+    if l_retval == alib.SUCCESS:
         exit
     else:
-        exit(retval)
+        exit(l_retval)
 
 # --- eof ---

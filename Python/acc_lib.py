@@ -69,8 +69,12 @@ CLUB_TAGS = ['cti numbers & scripts',
 
 # -- these files will end in 'TAG.xlsx'
 OTHER_TAGS = ['crib locations',
+              'disposition codes',
               'eta table',
+              'event types and sub-types',
               'message groups',
+              'out of service codes',
+              'out of service type agency',
               'personnel node access',
               'personnel',
               'skills',
@@ -126,10 +130,11 @@ def setup_load_details():
 
     ld = {}
 
-    ld['term'] = ['term - {vClub}__TERM.tsv',
-                  'Term.template',
-                  'dbo.term.Table.sql',
-                  'term.fmt']
+# This table should not be loaded.
+#    ld['term'] = ['term - {vClub}__TERM.tsv',
+#                  'Term.template',
+#                  'dbo.term.Table.sql',
+#                  'term.fmt']
 
     ld['personnel'] = ['personnel - {vClub}__PERSL.tsv',
                        'Persl.template',
@@ -226,7 +231,37 @@ def tsv_create_dir():
         p_e('Unable to create directory for TSV files, aborting')
         return None
     return tsv_dir
+
 # --- Compare
+# --------------------------------------------------------------------
+#
+#        dump df
+#
+# --------------------------------------------------------------------
+
+
+def dump_df(p_df, p_tab, p_datasource):
+    """
+    dump first 100 rows of dataframe
+    """
+
+    if len(p_df.index) > 0:
+        log_info('')
+        log_info('DUMP data from {} for table {}, first 100 rows only'.format(p_datasource, p_tab))
+        log_info('----------------------------------------------------------')
+
+        if len(p_df.index) > 100:
+            p_top_100 = 100
+        else:
+            p_top_100 = len(p_df.index)
+        # print_df = pd1_not_printed.select_dtypes(exclude=['object'])
+        print_df = p_df
+        printstr = tabulate.tabulate(print_df.head(n=p_top_100), headers='keys',
+                                     tablefmt='psql',
+                                     floatfmt='0.2f')
+        log_info(printstr)
+    return
+
 # --------------------------------------------------------------------
 #
 #        Tab Compare no chunks
@@ -279,7 +314,14 @@ def tab_compare_df(ps_df, pt_df, p_tab):
     record_counter = len(s_rem_df.index)
     p_d('Remove Matched rows')
 
-    s_rem_df, t_rem_df = tab_compare_del_common(source_df, target_df, p_run_preprocessor=False)
+    # change column order so they match
+    cols = source_df.columns.tolist()
+
+    target2_df = target_df[cols]
+
+
+
+    s_rem_df, t_rem_df = tab_compare_del_common(source_df, target2_df, p_run_preprocessor=False)
 
     # --- Finished comparison, start testing the remainder.
 
@@ -297,7 +339,11 @@ def tab_compare_df(ps_df, pt_df, p_tab):
                  format(record_counter))
     else:
         log_info('INFO - the result from the two sql statements is different')
+#        if s_rem_df.columns == t_rem_df.columns:
         tab_compare_log_diff(s_rem_df, t_rem_df, p_tab)
+#        else:
+#            dump_df(s_rem_df, p_tab, 'spreadsheet')
+#            dump_df(t_rem_df, p_tab, 'database')
 
     return res, s_rem_df, t_rem_df
 
@@ -421,6 +467,7 @@ def tab_compare_log_diff(p_pd1, p_pd2, p_tab):
             #                                                to 1 row per diff per col)
             eq_stacked = eql.stack()
             # extract only the rows where there is a difference
+            # DO NOT CHANGE THE NEXT LINE OF CODE TO "IS FALSE", IT DOES NOT WORK.
             eq_changed = eq_stacked[eq_stacked == False]
 
             # difference_locations = np.where(pd1 != pd2)
@@ -643,9 +690,28 @@ def open_ss2(p_ss):
             log_debug('                  save key: {}'.format(key))
             cache_loc_key = cache_loc_short + '__' + key + '__.h5'
             log_debug('                          : {}'.format(cache_loc_key))
-            l_ss_df = value
+            # special cases
+            if key.upper() == 'EVENT_TYPES_AND_SUB_TYPES_DATA':
+                # remove the first row of data (an extra heading)
+                # rename the columns to something meaningful
+                l_ss_df = value[1:]
+                l_ss_df.columns = ['AG_ID', 'TYCOD', 'ENG', 'SUB_TYCOD', 'SUB_ENG', 'PRIORITY',
+                                   'ADVISED_EVENT', 'DISP_REQ', 'AUTO_RESPONSE', 'PENDING_TIMER',
+                                   'DISPATCH_TIMER', 'ACKNOWLEDGE_TIMER', 'ENROUTE_TIMER',
+                                   'ARRIVE_TIMER', 'INITIAL_CALLBACK_TIMER', 'REPEAT_CALLBACK_TIMER',
+                                   'DAYS_AVAIL', 'LOI_DIST', 'NEAR_DIST']
+            else:
+                l_ss_df = value
             hdf = pd.HDFStore(cache_loc_key)
-            hdf.put('ic', l_ss_df)
+
+            try:
+                hdf.put('ic', l_ss_df)
+            except ValueError as err:
+                p_e('ERROR: failed to save spreadsheet tab')
+                p_e('       generally because of column headings not being unique')
+                p_e('   columns are [{}]'.format(l_ss_df.columns))
+                p_e('      error text: {}'.format(err))
+
             hdf.close()
 
         return l_df_dict
@@ -775,7 +841,8 @@ def load_tags(p_work_dict):
     # -------------------------------------
 
     for key, value in p_work_dict.items():
-
+        #        if 'event creation/event types and sub-types.xlsx' == value['club_file_short']:
+        #            x = 1
         l_dir = value['club_file_short'].split('/')[0]
         if l_dir in CLUB_LIST:
             value['club'] = l_dir
@@ -790,6 +857,9 @@ def load_tags(p_work_dict):
         #        curr_file = value['club_file_short'].split('/')[-1]
         #        if curr_file == 'external service supplier_aant.xlsx':
         #            x = 1
+        #        if 'event creation/event types and sub-types.xlsx' == value['club_file_short']:
+        #            x = 1
+
         if value['tag'] is not None:
             continue
 

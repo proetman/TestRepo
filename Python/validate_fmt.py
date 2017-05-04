@@ -23,8 +23,6 @@ import acc_lib as alib
 #
 # --------------------------------------------------------------------
 
-
-
 # --- process
 # --------------------------------------------------------------------
 #
@@ -103,7 +101,7 @@ def fetch_tsv_file(p_work_dict, p_short_name, p_sheet_name, p_data_dir):
 
     tsv_results = []
 
-    for key, value in p_work_dict.items():
+    for dummy_key, value in p_work_dict.items():
         # -- handle the club files
         if value['tag'] == p_short_name:
 
@@ -265,7 +263,7 @@ def run_fmt_job(p_cmd):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 
-    output, error = job.communicate()
+    output, error_str = job.communicate()
 
     mod_output = output.decode('ascii')
     if('Error in insert' in mod_output or
@@ -279,8 +277,8 @@ def run_fmt_job(p_cmd):
         alib.log_debug('        output = {}'.format(output))
         alib.p_i('')
 
-    if len(error) > 0:
-        alib.log_error('    error =  = {}'.format(error))
+    if len(error_str) > 0:
+        alib.log_error('    error =  = {}'.format(error_str))
 
 # --------------------------------------------------------------------
 #
@@ -302,7 +300,7 @@ def run_job(p_cmd):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 
-    output, error = job.communicate()
+    output, error_str = job.communicate()
 
     if b'There is already an object named' in output:
         alib.p_i('    Errors found, please review log file')
@@ -310,8 +308,8 @@ def run_job(p_cmd):
         alib.p_i('    Success')
 
     alib.log_info('    output = {}'.format(output))
-    if len(error) > 0:
-        alib.log_error('    error =  = {}'.format(error))
+    if len(error_str) > 0:
+        alib.log_error('    error =  = {}'.format(error_str))
 
 # --- Program Init
 # --------------------------------------------------------------------
@@ -340,7 +338,7 @@ def initialise():
           """, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--target_db',
-                        help='DB Connection: "localhost" or paul@win-khgvd5br678\Adventureworks2014:dbo',
+                        help='DB Connection: "localhost" or paul@win-khgvd5br678\\Adventureworks2014:dbo',
                         required=True)
 
     parser.add_argument('--club_dir',
@@ -387,7 +385,6 @@ def initialise():
                         help='only run "short_name" load',
                         required=False)
 
-
     # Add debug arguments
     parser.add_argument('-d', '--debug',
                         help='Log messages verbosity: NONE (least), DEBUG (most)',
@@ -424,7 +421,7 @@ def main():
     this program will test the load data.
     """
 
-    args, l_log_filename_s = initialise()
+    args, dummy_l_log_filename_s = initialise()
 
     # -- Initialise
     if not alib.init_app(args):
@@ -478,21 +475,21 @@ def main():
     #    -----------------
     #    term
 
-    # p1   personnel                               -- round 1 error check complete.
-    # p2   personnel node access                   -- round 1 error check complete.
-    # p3   event types and sub-types               -- round 1 error check complete - (shannon)
-    # p4   disposition codes                       -- round 1 error check complete.
-    # p7   eta table                               -- round 1 error check complete.
-    # p9   out of service codes                    -- round 1 error check complete.
-    # p11  out of service type agency              -- round 1 error check complete.
-    # p11  vehicles                                -- round 1 error check complete.
-    # p12  units                                   -- round 1 error check complete.
-    # p15  membership pricing level (surefire)     -- round 1 error check complete.
-    # p46  esp alerts                              -- round 1 error check complete.
-    # p47  skills                                  -- round 1 error check complete.
-    # p48  vehicle equipment                       -- round 1 error check complete.
-    # p65  term app access - inetveiwer            -- round 1 all files loaded successfully.
-    # p99  unit agency restriction                 -- round 1 error check complete.
+    # p1   personnel                               -- load ok
+    # p2   personnel node access                   -- load ok
+    # p3   event types and sub-types               -- load ok
+    # p4   disposition codes                       -- load ok
+    # p7   eta table                               -- load ok
+    # p9   out of service codes                    -- load ok
+    # p11  out of service type agency              -- load ok
+    # p11  vehicles                                -- load ok
+    # p12  units                                   -- load ok
+    # p15  membership pricing level (surefire)     -- load ok
+    # p46  esp alerts                              -- waiting on email from Gome/Lynn
+    # p47  skills                                  -- load ok
+    # p48  vehicle equipment                       --
+    # p65  term app access - inetveiwer            --
+    # p99  unit agency restriction                 --
 
     load_details = alib.setup_load_details()
     for ld in load_details.items():

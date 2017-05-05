@@ -1,5 +1,8 @@
 11.0
-3
+6
 1       SQLCHAR             0       20      "\t"     1     discount_type                    Latin1_General_CI_AS
-2       SQLCHAR             0       12      "\t"     2     mem_product_id                   ""
-3       SQLCHAR             0       12      "\r\n"   3     price_level                      ""
+2       SQLCHAR             0       12      "\t"     2     price_level                      ""
+3       SQLCHAR             0       50      "\t"     3     product_identifier               Latin1_General_CI_AS
+4       SQLCHAR             0       50      "\t"     4     product_name                     Latin1_General_CI_AS
+5       SQLCHAR             0        1      "\t"     5     isactive                         Latin1_General_CI_AS
+6       SQLCHAR             0        1      "\r\n"   0     deleted_product_id               Latin1_General_CI_AS

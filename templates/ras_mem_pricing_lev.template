@@ -1,36 +1,40 @@
 Use {vDB}
 
-IF OBJECT_ID('#ras_mem_pricing_levTMP') IS NOT NULL
-DROP TABLE #ras_mem_pricing_levTMP;
+IF OBJECT_ID('ras_tmp') IS NOT NULL
+    DROP TABLE ras_tmp;
 GO
 
 IF OBJECT_ID('tempdb..#Upload_Errors') IS NOT NULL
-DROP TABLE #Upload_Errors;
+    DROP TABLE #Upload_Errors;
 GO
 
 create table #Upload_Errors(Record varchar(50), err_msg  varchar(4000))
 
-CREATE TABLE #ras_mem_pricing_levTMP
+CREATE TABLE ras_tmp
     (
-	discount_type varchar(20),
-	mem_product_id int,
-	price_level int
+	discount_type        varchar(20),
+	price_level          int,
+        product_identifier   varchar(50),
+        product_name         varchar(50),
+        isactive             varchar(1) 
     )
 
 
 BULK
-INSERT #ras_mem_pricing_levTMP
+INSERT ras_tmp
 FROM '{vTSVFile}'
 WITH
 (
-FORMATFILE = '{vFmtFile}',
-FIRSTROW = 2
+    FORMATFILE = '{vFmtFile}',
+    FIRSTROW = 2
 );
 
 
-Declare @Vdiscount_type varchar(20)
-Declare @Vmem_product_id int
-declare @Vprice_level int
+-- from BCP
+Declare @Vdiscount_type      varchar(20)
+Declare @Vprice_level        int
+Declare @Vpid                int
+
 
 
 
@@ -38,57 +42,56 @@ DECLARE LoopCursor CURSOR FAST_FORWARD
 FOR 
 
 SELECT 
-	discount_type,
-	mem_product_id,
-	price_level
-
-FROM #ras_mem_pricing_levTMP
-order by mem_product_id asc
+	t.discount_type,
+	p.pid,
+        t.price_level
+FROM ras_tmp t
+    left join ras_product p    on  t.product_identifier COLLATE DATABASE_DEFAULT = p.product_identifier COLLATE DATABASE_DEFAULT
+                               and t.product_name       COLLATE DATABASE_DEFAULT = p.product_name       COLLATE DATABASE_DEFAULT
+order by pid asc
 
 OPEN LoopCursor
 
 Fetch next from LoopCursor
-
 into 
-
-@Vdiscount_type,
-@Vmem_product_id,
-@Vprice_level
+  @Vdiscount_type,
+  @Vpid,
+  @Vprice_level
 
 while @@FETCH_STATUS = 0
 
 begin
 begin try
-print @Vmem_product_id
+print @Vdiscount_type
+print @Vpid
+print @Vprice_level
 
 insert into ras_mem_pricing_lev(
-discount_type,
-mem_product_id,
-price_level
-
+    discount_type,
+    mem_product_id,
+    price_level
 )
-
 values (
-@Vdiscount_type,
-@Vmem_product_id,
-@Vprice_level
-
+    @Vdiscount_type,
+    @Vpid,
+    @Vprice_level
 )
+
 end try
 
 begin catch
 
 
-insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vmem_product_id), ERROR_MESSAGE())
+insert into #Upload_Errors(Record, err_msg) values ( 'Error in insert '+ convert(Varchar(10),@Vpid), ERROR_MESSAGE())
 
 end catch 
 
 
 fetch next 
 from LoopCursor into 
-@Vdiscount_type,	
-@Vmem_product_id,
-@Vprice_level
+    @Vdiscount_type,	
+    @Vpid,
+    @Vprice_level
 
 end 
 close LoopCursor

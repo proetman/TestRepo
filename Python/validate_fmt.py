@@ -268,6 +268,7 @@ def run_fmt_job(p_cmd):
     mod_output = output.decode('ascii')
     if('Error in insert' in mod_output or
        'Bulk load data conversion error' in mod_output or
+       'Violation of PRIMARY KEY constraint' in mod_output or
        'Cannot insert the value' in mod_output or
        'Msg ' in mod_output):
         alib.p_e('        Errors found, please review log file')

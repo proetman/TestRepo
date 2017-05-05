@@ -31,7 +31,7 @@ import acc_lib as alib
 # --------------------------------------------------------------------
 
 
-def process(p_dir, p_ld, p_conn_details, p_work_dict, p_create_tab=None):
+def process(p_dir, p_ld, p_conn_details, p_work_dict, p_create_tab=False):
     """
     process a load dict
     """
@@ -158,10 +158,10 @@ def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file, p_cr
 
     l_db = p_conn_details['db']
 
-    if p_create_tab is None:
-        run_dir = 'trunc_tab'      # files will truncate existing table
-    else:
+    if p_create_tab:
         run_dir = 'sql'            # files will DROP AND CREATE table
+    else:
+        run_dir = 'trunc_tab'      # files will truncate existing table, DEFAULT
 
     l_sql_file = p_code_dir + '/' + run_dir + '/' + p_sql_file
     alib.log_debug('    sql file      : {}'.format(l_sql_file.replace('/', '\\')))
@@ -351,16 +351,15 @@ def initialise():
 
           """, formatter_class=argparse.RawTextHelpFormatter)
 
-
-
     parser.add_argument('--target_db',
                         help='DB Connection: "localhost" or paul@win-khgvd5br678\\Adventureworks2014:dbo',
                         required=True)
 
     parser.add_argument('--create_tab',
                         help='create tables, default is to truncate tables',
+                        action='store_true',
+                        default=False,
                         required=False)
-
 
     parser.add_argument('--club_dir',
                         help='club files directory',

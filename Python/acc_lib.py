@@ -1324,18 +1324,22 @@ def db_connect_mssql(p_con):
     e_template += ' Server={vHost}\{vI}; Database={vDB}'
     e_template += ' connect string: {vStr}'
 
-    connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
-    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+    if l_instance is None:
+        connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost};'
+        connect_template += 'Database={vDB};Trusted_Connection=yes;'             #  uid=etl;pwd=etl;
+    else:
+        connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
+        connect_template += 'Database={vDB};Trusted_Connection=yes;'
 
-    connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
-    connect_template += 'Database={vDB};Trusted_Connection=yes;'
-
-    connect_template = r'Driver={{SQL Server}};Server={vHost}\{vI};'
-    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+#    connect_template = r'Driver={{SQL Server Native Client 11.0}};Server={vHost}\{vI};'
+#    connect_template += 'Database={vDB};Trusted_Connection=yes;'
+#
+#    connect_template = r'Driver={{SQL Server}};Server={vHost}\{vI};'
+#    connect_template += 'Database={vDB};Trusted_Connection=yes;'
 
     connect_str = connect_template.format(vHost=l_host,
                                           vI=l_instance,
-                                          vDB=l_schema)
+                                          vDB=l_db)
 
     try:
 

@@ -31,7 +31,7 @@ import acc_lib as alib
 # --------------------------------------------------------------------
 
 
-def process(p_dir, p_ld, p_conn_details, p_work_dict):
+def process(p_dir, p_ld, p_conn_details, p_work_dict, p_create_tab=None):
     """
     process a load dict
     """
@@ -58,11 +58,15 @@ def process(p_dir, p_ld, p_conn_details, p_work_dict):
     alib.log_debug('    short name    : {}'.format(l_short_name))
     alib.log_debug('    table name    : {}'.format(l_sheet_name))
 
-    l_sql_tmp_file = create_tmp_sql_file(l_code_dir, l_temp_dir, p_conn_details, l_create_table)
+    l_sql_tmp_file = create_tmp_sql_file(l_code_dir, l_temp_dir, p_conn_details, l_create_table, p_create_tab)
 
-    run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
-                                                                     vInstance=p_conn_details['instance'],
-                                                                     vSql=l_sql_tmp_file.replace('/', '\\'))
+    if p_conn_details['instance'] is None:
+        run_sql_cmd = 'sqlcmd -S {vHost} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                            vSql=l_sql_tmp_file.replace('/', '\\'))
+    else:
+        run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                                         vInstance=p_conn_details['instance'],
+                                                                         vSql=l_sql_tmp_file.replace('/', '\\'))
 
     run_job(run_sql_cmd)
 
@@ -73,9 +77,13 @@ def process(p_dir, p_ld, p_conn_details, p_work_dict):
         l_template_tmp_file = create_tmp_template_file(l_code_dir, l_temp_dir, p_conn_details,
                                                        l_template, tsv_file, l_fmt_file)
 
-        run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
-                                                                         vInstance=p_conn_details['instance'],
-                                                                         vSql=l_template_tmp_file.replace('/', '\\'))
+        if p_conn_details['instance'] is None:
+            run_sql_cmd = 'sqlcmd -S {vHost} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                                vSql=l_template_tmp_file.replace('/', '\\'))
+        else:
+            run_sql_cmd = 'sqlcmd -S {vHost}\\{vInstance} -i {vSql} '.format(vHost=p_conn_details['host'],
+                                                                             vInstance=p_conn_details['instance'],
+                                                                             vSql=l_template_tmp_file.replace('/', '\\'))
 
         run_fmt_job(run_sql_cmd)
 
@@ -142,15 +150,20 @@ def fetch_tsv_file(p_work_dict, p_short_name, p_sheet_name, p_data_dir):
 # --------------------------------------------------------------------
 
 
-def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file):
+def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file, p_create_tab):
     """
     create a sql file that has all the variables replaced.
     """
     alib.log_debug('Start create tmp sql file')
 
-    l_schema = p_conn_details['schema']
+    l_db = p_conn_details['db']
 
-    l_sql_file = p_code_dir + '/sql/' + p_sql_file
+    if p_create_tab is None:
+        run_dir = 'trunc_tab'      # files will truncate existing table
+    else:
+        run_dir = 'sql'            # files will DROP AND CREATE table
+
+    l_sql_file = p_code_dir + '/' + run_dir + '/' + p_sql_file
     alib.log_debug('    sql file      : {}'.format(l_sql_file.replace('/', '\\')))
 
     l_sql_data = read_file(l_sql_file)
@@ -158,7 +171,7 @@ def create_tmp_sql_file(p_code_dir, p_data_dir, p_conn_details, p_sql_file):
 
     l_new_data = []
     for line in l_sql_data:
-        l_new_data.append(line.format(vDB=l_schema,
+        l_new_data.append(line.format(vDB=l_db,
                                       vFmtDir=l_data_dir,
                                       vDataDir=l_data_dir))
 
@@ -182,7 +195,7 @@ def create_tmp_template_file(p_code_dir, p_tmp_dir, p_conn_details, p_template, 
     """
     alib.log_debug('Start create tmp fmt file')
 
-    l_schema = p_conn_details['schema']
+    l_db = p_conn_details['db']
 
     l_template_file = p_code_dir + '/templates/' + p_template
     l_fmt_file = p_code_dir + '/fmt/' + p_fmt_file
@@ -195,7 +208,7 @@ def create_tmp_template_file(p_code_dir, p_tmp_dir, p_conn_details, p_template, 
 
     l_new_data = []
     for line in l_template_data:
-        l_new_data.append(line.format(vDB=l_schema,
+        l_new_data.append(line.format(vDB=l_db,
                                       vFmtFile=l_fmt_file.replace('/', '\\'),
                                       vTSVFile=p_tsv_file.replace('/', '\\')))
 
@@ -338,9 +351,16 @@ def initialise():
 
           """, formatter_class=argparse.RawTextHelpFormatter)
 
+
+
     parser.add_argument('--target_db',
                         help='DB Connection: "localhost" or paul@win-khgvd5br678\\Adventureworks2014:dbo',
                         required=True)
+
+    parser.add_argument('--create_tab',
+                        help='create tables, default is to truncate tables',
+                        required=False)
+
 
     parser.add_argument('--club_dir',
                         help='club files directory',
@@ -375,7 +395,7 @@ def initialise():
     parser.add_argument('--data_dir',
                         help='directory for data files',
                         default=None,
-                        required=False)
+                        required=True)
 
     parser.add_argument('--temp_dir',
                         help='directory for temp build files',
@@ -384,6 +404,18 @@ def initialise():
 
     parser.add_argument('--short_code',
                         help='only run "short_name" load',
+                        required=False)
+
+    parser.add_argument('--target_host',
+                        help='target host',
+                        required=False)
+
+    parser.add_argument('--target_instance',
+                        help='target instance',
+                        required=False)
+
+    parser.add_argument('--target_schema',
+                        help='target schema',
                         required=False)
 
     # Add debug arguments
@@ -435,15 +467,15 @@ def main():
 
     if args['target_db'] == 'localhost':
         connect_details['host'] = 'localhost'
-        connect_details['instance'] = 'SQLEXPRESS'
-        connect_details['schema'] = 'AdventureWorks2012'
-        connect_details['db'] = 'HUMANRESOURCES'
+        connect_details['instance'] = 'SQLEXPRESS'            # None
+        connect_details['schema'] = 'dbo'
+        connect_details['db'] = 'AdventureWorks2012'
 
     else:
         # running on terminal server
         target_conn = args['target_db']
         connect_details['host'] = args['target_host']
-        connect_details['instance'] = args['targetinstance']
+        connect_details['instance'] = args['target_instance']
         connect_details['schema'] = args['target_schema']
         connect_details['db'] = args['target_db']
 
@@ -497,7 +529,7 @@ def main():
         if args['short_code'] is not None:
             if args['short_code'] != ld[0]:
                 continue
-        process(my_work_dir, ld, connect_details, work_dict)
+        process(my_work_dir, ld, connect_details, work_dict, args['create_tab'])
 
     db_conn.close()
 

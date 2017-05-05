@@ -436,7 +436,7 @@ def fetch_table(p_condet, p_table, p_cols_df):
 
     _sql_template = '''
                select {vCols}
-               from   {vSchema}.{vDB}.{vTab}
+               from   {vDB}.{vSchema}.{vTab}
                '''
 
     # where USR_ID = 'allan0l'
@@ -742,15 +742,15 @@ def main():
 
     if args['target_db'] == 'localhost':
         connect_details['host'] = 'localhost'
-        connect_details['instance'] = 'SQLEXPRESS'
-        connect_details['schema'] = 'AdventureWorks2012'
-        connect_details['db'] = 'dbo'
+        connect_details['instance'] = 'SQLEXPRESS'      # None
+        connect_details['schema'] = 'dbo'
+        connect_details['db'] = 'AdventureWorks2012'
 
     else:
         # running on terminal server
         target_conn = args['target_db']
         connect_details['host'] = args['target_host']
-        connect_details['instance'] = args['targetinstance']
+        connect_details['instance'] = args['target_instance']
         connect_details['schema'] = args['target_schema']
         connect_details['db'] = args['target_db']
 
